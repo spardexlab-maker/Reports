@@ -131,7 +131,7 @@ export async function printReport(data: any, title: string) {
         </thead>
         <tbody>
           ${data.filteredForms.map((f: any) => {
-            const sectorName = f.sectors?.name || (Array.isArray(f.sectors) ? f.sectors[0]?.name : "") || ""
+            const sectorName = Array.isArray(f.sectors) ? (f.sectors[0]?.name || "") : (f.sectors?.name || "")
             return `
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 8px; font-weight: bold;">${f.form_number}</td>
@@ -158,27 +158,18 @@ export async function printReport(data: any, title: string) {
       backgroundColor: "#ffffff",
       onclone: (clonedDoc) => {
         // Fix for oklch colors in html2canvas
-        try {
-          const styleSheets = Array.from(clonedDoc.styleSheets);
-          for (const sheet of styleSheets) {
-            try {
-              // Check if we can access cssRules (might throw for cross-origin)
-              if (sheet && 'cssRules' in sheet && sheet.cssRules) {
-                const rules = Array.from(sheet.cssRules);
-                for (let i = rules.length - 1; i >= 0; i--) {
-                  const rule = rules[i];
-                  if (rule && 'cssText' in rule && rule.cssText.includes('oklch')) {
-                    sheet.deleteRule(i);
-                  }
-                }
+        const styleSheets = Array.from(clonedDoc.styleSheets);
+        for (const sheet of styleSheets) {
+          try {
+            const rules = Array.from(sheet.cssRules);
+            for (let i = rules.length - 1; i >= 0; i--) {
+              if (rules[i].cssText.includes('oklch')) {
+                sheet.deleteRule(i);
               }
-            } catch (e) {
-              // Ignore cross-origin stylesheet errors
-              console.warn("Could not process stylesheet rules:", e);
             }
+          } catch (e) {
+            // Ignore cross-origin stylesheet errors
           }
-        } catch (e) {
-          console.warn("Could not process stylesheets:", e);
         }
       }
     })

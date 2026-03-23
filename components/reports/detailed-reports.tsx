@@ -180,10 +180,11 @@ export default function DetailedReports({
         .map(m => `${m.details} (${m.quantity})`)
         .join(", ")
 
-      const sectorName = form.sectors?.name || 
-                         (Array.isArray(form.sectors) ? form.sectors[0]?.name : "") ||
-                         sectors.find(s => s.id === form.sector_id)?.name || 
-                         ""
+      const sectorName = Array.isArray(form.sectors)
+        ? form.sectors[0]?.name
+        : form.sectors?.name || 
+          sectors.find(s => s.id === form.sector_id)?.name || 
+          ""
 
       return {
         "رقم البلاغ": form.form_number,
@@ -532,10 +533,11 @@ export default function DetailedReports({
                   ) : (
                     filteredForms.map((form) => {
                       const formMaterials = materialsUsed.filter(m => m.form_id === form.id)
-                      const sectorName = form.sectors?.name || 
-                                         (Array.isArray(form.sectors) ? form.sectors[0]?.name : "") ||
-                                         sectors.find(s => s.id === form.sector_id)?.name || 
-                                         ""
+                      const sectorName = Array.isArray(form.sectors)
+                        ? form.sectors[0]?.name
+                        : form.sectors?.name || 
+                          sectors.find(s => s.id === form.sector_id)?.name || 
+                          ""
                       return (
                         <TableRow key={form.id}>
                           <TableCell className="font-medium">{form.form_number}</TableCell>

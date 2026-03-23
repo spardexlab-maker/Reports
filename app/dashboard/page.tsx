@@ -79,11 +79,11 @@ export default async function DashboardPage() {
     }
 
     forms?.forEach((form: FaultForm) => {
-      const sectorData = form.sectors as any
-      const sectorName = sectorData?.name || 
-                         (Array.isArray(sectorData) ? sectorData[0]?.name : "") || 
-                         sectors.find(s => s.id === form.sector_id)?.name ||
-                         "غير معروف"
+      const sectorName = Array.isArray(form.sectors) 
+        ? form.sectors[0]?.name 
+        : form.sectors?.name || 
+          sectors.find(s => s.id === form.sector_id)?.name ||
+          "غير معروف"
       sectorCounts[sectorName] = (sectorCounts[sectorName] || 0) + 1
     })
 

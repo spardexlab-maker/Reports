@@ -107,7 +107,7 @@ export default async function UsersPage() {
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.full_name}</TableCell>
                     <TableCell>{u.role === 'admin' ? 'مدير' : 'مستخدم قطاع'}</TableCell>
-                    <TableCell>{u.sectors?.name || '-'}</TableCell>
+                    <TableCell>{(Array.isArray(u.sectors) ? u.sectors[0]?.name : u.sectors?.name) || '-'}</TableCell>
                     <TableCell>{new Date(u.created_at).toLocaleDateString('ar-EG')}</TableCell>
                   </TableRow>
                 ))

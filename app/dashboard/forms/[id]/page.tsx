@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import FormActions from "@/components/forms/form-actions"
+import { Profile, FaultForm } from "@/lib/types"
 
 export const metadata: Metadata = {
   title: "تفاصيل البلاغ | نظام إدارة بلاغات الأعطال",
@@ -49,7 +50,7 @@ export default async function FormDetailsPage({
       .from("users")
       .select("role, sector_id")
       .eq("id", user.id)
-      .maybeSingle(),
+      .maybeSingle() as Promise<{ data: Profile | null }>,
     supabaseAdmin
       .from("fault_forms")
       .select(`
@@ -61,12 +62,12 @@ export default async function FormDetailsPage({
         signed_forms(*)
       `)
       .eq("id", id)
-      .maybeSingle()
+      .maybeSingle() as Promise<{ data: (FaultForm & { resolved_sector_name?: string; materials_used?: any[]; materials_returned?: any[]; fault_images?: any[]; signed_forms?: any[] }) | null }>
   ])
 
   let sectorName = ""
   if (form) {
-    sectorName = form.sectors?.name || (Array.isArray(form.sectors) ? form.sectors[0]?.name : "")
+    sectorName = Array.isArray(form.sectors) ? (form.sectors[0]?.name || "") : (form.sectors?.name || "")
     if (!sectorName && form.sector_id) {
       const { data: sectorData } = await supabaseAdmin
         .from("sectors")

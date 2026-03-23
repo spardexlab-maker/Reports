@@ -39,7 +39,7 @@ export default async function ImagesPage() {
   const { data: images } = await query
 
   // Filter out null fault_forms (due to inner join behavior with eq on related table)
-  const filteredImages = isAdmin ? images : (images as any[])?.filter((img: any) => img.fault_forms !== null)
+  const filteredImages = isAdmin ? images : images?.filter(img => img.fault_forms !== null)
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -67,7 +67,7 @@ export default async function ImagesPage() {
               <CardContent className="p-4">
                 <p className="font-semibold">رقم الاستمارة: {image.fault_forms?.form_number}</p>
                 <p className="text-sm text-muted-foreground">
-                  القطاع: {image.fault_forms?.sectors?.name || "غير معروف"}
+                  القطاع: {(Array.isArray(image.fault_forms?.sectors) ? image.fault_forms?.sectors[0]?.name : image.fault_forms?.sectors?.name) || "غير معروف"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
                   {new Date(image.created_at).toLocaleString("ar-EG")}

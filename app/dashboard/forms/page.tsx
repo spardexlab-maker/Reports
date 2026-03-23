@@ -122,10 +122,11 @@ export default async function FormsPage({
                 <TableRow key={form.id}>
                   <TableCell className="font-medium">{form.form_number}</TableCell>
                   <TableCell>
-                    {form.sectors?.name || 
-                     (Array.isArray(form.sectors) ? form.sectors[0]?.name : "") ||
-                     sectors?.find((s: Sector) => s.id === form.sector_id)?.name || 
-                     ""}
+                    {Array.isArray(form.sectors)
+                      ? form.sectors[0]?.name
+                      : form.sectors?.name || 
+                        sectors?.find((s: Sector) => s.id === form.sector_id)?.name || 
+                        ""}
                   </TableCell>
                   <TableCell>{form.date}</TableCell>
                   <TableCell>{form.station}</TableCell>

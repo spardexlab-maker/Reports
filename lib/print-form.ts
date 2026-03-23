@@ -33,7 +33,7 @@ export async function printForm(form: any, materialsUsed: any[], materialsReturn
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
       <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">القطاع</div>
-        <div style="font-size: 22px; font-weight: bold;">${form.resolved_sector_name || form.sectors?.name || (Array.isArray(form.sectors) ? form.sectors[0]?.name : "") || "غير محدد"}</div>
+        <div style="font-size: 22px; font-weight: bold;">${form.resolved_sector_name || (Array.isArray(form.sectors) ? form.sectors[0]?.name : form.sectors?.name) || "غير محدد"}</div>
       </div>
       <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">التاريخ والوقت</div>
@@ -171,27 +171,18 @@ export async function printForm(form: any, materialsUsed: any[], materialsReturn
       windowWidth: 1000,
       onclone: (clonedDoc) => {
         // STRIP OKLCH: This is the critical fix for html2canvas crashing on modern CSS
-        try {
-          const styleSheets = Array.from(clonedDoc.styleSheets);
-          for (const sheet of styleSheets) {
-            try {
-              // Check if we can access cssRules (might throw for cross-origin)
-              if (sheet && 'cssRules' in sheet && sheet.cssRules) {
-                const rules = Array.from(sheet.cssRules);
-                for (let i = rules.length - 1; i >= 0; i--) {
-                  const rule = rules[i];
-                  if (rule && 'cssText' in rule && rule.cssText.includes('oklch')) {
-                    sheet.deleteRule(i);
-                  }
-                }
+        const styleSheets = Array.from(clonedDoc.styleSheets);
+        for (const sheet of styleSheets) {
+          try {
+            const rules = Array.from(sheet.cssRules);
+            for (let i = rules.length - 1; i >= 0; i--) {
+              if (rules[i].cssText.includes('oklch')) {
+                sheet.deleteRule(i);
               }
-            } catch (e) {
-              // Some stylesheets might be cross-origin and inaccessible
-              console.warn("Could not process stylesheet rules:", e);
             }
+          } catch (e) {
+            // Some stylesheets might be cross-origin and inaccessible
           }
-        } catch (e) {
-          console.warn("Could not process stylesheets:", e);
         }
 
         const clonedContainer = clonedDoc.getElementById("printable-form-container")
