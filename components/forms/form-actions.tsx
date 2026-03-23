@@ -21,11 +21,13 @@ import { Label } from "@/components/ui/label"
 
 import { printForm } from "@/lib/print-form"
 
+import { Profile, FaultForm, MaterialUsed, MaterialReturned } from "@/lib/types"
+
 interface FormActionsProps {
-  form: any
+  form: FaultForm
   isAdmin: boolean
-  materialsUsed?: any[]
-  materialsReturned?: any[]
+  materialsUsed?: MaterialUsed[]
+  materialsReturned?: MaterialReturned[]
   canEdit?: boolean
 }
 

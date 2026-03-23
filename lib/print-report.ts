@@ -1,8 +1,20 @@
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import { format } from "date-fns"
+import { FaultForm } from "./types"
 
-export async function printReport(data: any, title: string) {
+interface ReportData {
+  stats: {
+    totalForms: number
+    totalMaterials: number
+    statusCounts: Record<string, number>
+    materialUsage: { name: string; value: number }[]
+    vehicleUsage: { name: string; value: number }[]
+  }
+  filteredForms: FaultForm[]
+}
+
+export async function printReport(data: ReportData, title: string) {
   console.log("Starting professional report generation...")
   
   // Create a overlay to show printing status

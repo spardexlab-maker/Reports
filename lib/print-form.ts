@@ -1,7 +1,8 @@
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+import { FaultForm, MaterialUsed, MaterialReturned } from "./types"
 
-export async function printForm(form: any, materialsUsed: any[], materialsReturned: any[]) {
+export async function printForm(form: FaultForm, materialsUsed: MaterialUsed[], materialsReturned: MaterialReturned[]) {
   console.log("Starting PDF generation for form:", form.form_number)
   
   // Create a container for the printable version

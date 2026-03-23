@@ -53,13 +53,15 @@ const formSchema = z.object({
   materials_returned: z.array(materialSchema).optional(),
 })
 
+import { Profile, FaultForm, Sector, Vehicle, MaterialCatalog, FaultImage } from "@/lib/types"
+
 interface FaultFormProps {
   userSectorId?: string | null
-  sectors: any[]
-  vehicles: any[]
-  materials: any[]
+  sectors: Sector[]
+  vehicles: Vehicle[]
+  materials: MaterialCatalog[]
   isAdmin: boolean
-  initialData?: any
+  initialData?: FaultForm
 }
 
 export default function FaultForm({ userSectorId, sectors, vehicles, materials, isAdmin, initialData }: FaultFormProps) {
@@ -67,7 +69,7 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
   const [images, setImages] = React.useState<File[]>([])
-  const [existingImages, setExistingImages] = React.useState<any[]>(initialData?.fault_images || [])
+  const [existingImages, setExistingImages] = React.useState<FaultImage[]>(initialData?.fault_images || [])
   const supabase = createClient()
   const defaultSectorId = initialData?.sector_id || userSectorId || (sectors.length > 0 ? sectors[0].id : "")
 
@@ -390,7 +392,7 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
                     </FormControl>
                     <SelectContent>
                       {selectedSector?.stations && selectedSector.stations.length > 0 ? (
-                        Array.from(new Set(selectedSector.stations)).map((station: any, index: number) => (
+                        Array.from(new Set(selectedSector.stations)).map((station: string, index: number) => (
                           <SelectItem key={`${station}-${index}`} value={station}>
                             {station}
                           </SelectItem>
@@ -422,7 +424,7 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
                     </FormControl>
                     <SelectContent>
                       {selectedSector?.feeders && selectedSector.feeders.length > 0 ? (
-                        Array.from(new Set(selectedSector.feeders)).map((feeder: any, index: number) => (
+                        Array.from(new Set(selectedSector.feeders)).map((feeder: string, index: number) => (
                           <SelectItem key={`${feeder}-${index}`} value={feeder}>
                             {feeder}
                           </SelectItem>
@@ -454,7 +456,7 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
                     </FormControl>
                     <SelectContent>
                       {selectedSector?.transformer_numbers && selectedSector.transformer_numbers.length > 0 ? (
-                        Array.from(new Set(selectedSector.transformer_numbers)).map((num: any, index: number) => (
+                        Array.from(new Set(selectedSector.transformer_numbers)).map((num: string, index: number) => (
                           <SelectItem key={`${num}-${index}`} value={num}>
                             {num}
                           </SelectItem>

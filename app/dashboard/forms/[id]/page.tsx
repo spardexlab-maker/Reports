@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import FormActions from "@/components/forms/form-actions"
-import { Profile, FaultForm } from "@/lib/types"
+import { Profile, FaultForm, MaterialUsed, MaterialReturned, FaultImage, SignedForm } from "@/lib/types"
 
 export const metadata: Metadata = {
   title: "تفاصيل البلاغ | نظام إدارة بلاغات الأعطال",
@@ -62,7 +62,7 @@ export default async function FormDetailsPage({
         signed_forms(*)
       `)
       .eq("id", id)
-      .maybeSingle() as Promise<{ data: (FaultForm & { resolved_sector_name?: string; materials_used?: any[]; materials_returned?: any[]; fault_images?: any[]; signed_forms?: any[] }) | null }>
+      .maybeSingle() as Promise<{ data: FaultForm | null }>
   ])
 
   let sectorName = ""
@@ -207,7 +207,7 @@ export default async function FormDetailsPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {form.materials_used.map((item: any) => (
+                  {form.materials_used.map((item: MaterialUsed) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.index_number}</TableCell>
                       <TableCell>{item.details}</TableCell>
@@ -237,7 +237,7 @@ export default async function FormDetailsPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {form.materials_returned.map((item: any) => (
+                  {form.materials_returned.map((item: MaterialReturned) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.index_number}</TableCell>
                       <TableCell>{item.details}</TableCell>
@@ -280,7 +280,7 @@ export default async function FormDetailsPage({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {form.fault_images.map((image: any) => (
+              {form.fault_images.map((image: FaultImage) => (
                 <a key={image.id} href={image.image_url} target="_blank" rel="noopener noreferrer" className="relative block border rounded-md overflow-hidden hover:opacity-80 transition-opacity h-32">
                   <Image
                     src={image.image_url}
@@ -303,7 +303,7 @@ export default async function FormDetailsPage({
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {form.signed_forms.map((signed: any) => (
+              {form.signed_forms.map((signed: SignedForm) => (
                 <div key={signed.id} className="flex items-center justify-between border p-3 rounded-md">
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 ml-2" />
