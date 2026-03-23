@@ -85,7 +85,7 @@ export default async function ReportsPage() {
         sectors={sectors || []}
         materialsCatalog={materialsCatalog || []}
         isAdmin={isAdmin}
-        userSectorId={profile?.sector_id}
+        userSectorId={profile?.sector_id ?? undefined}
       />
     </div>
   )
