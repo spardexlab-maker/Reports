@@ -149,11 +149,11 @@ export default function DetailedReports({
       totalMaterials,
       statusCounts,
       materialUsage: Object.entries(materialUsage)
-        .map(([name, value]) => ({ name, value }))
+        .map(([name, value]) => ({ name, value: value as number }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 10), // Top 10 materials
       vehicleUsage: Object.entries(vehicleUsage)
-        .map(([name, value]) => ({ name, value }))
+        .map(([name, value]) => ({ name, value: value as number }))
         .sort((a, b) => b.value - a.value)
     }
   }, [filteredForms, filteredMaterialsUsed])
