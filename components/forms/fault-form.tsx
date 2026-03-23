@@ -89,8 +89,8 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
       vehicles_used: initialData?.vehicles_used || "",
       obstacles_problems: initialData?.obstacles_problems || "",
       technical_staff: initialData?.technical_staff || "",
-      materials_used: initialData?.materials_used?.length > 0 ? (initialData.materials_used as { details: string; quantity: number }[]) : [{ details: "", quantity: 1 }],
-      materials_returned: initialData?.materials_returned?.length > 0 ? (initialData.materials_returned as { details: string; quantity: number }[]) : [{ details: "", quantity: 1 }],
+      materials_used: (initialData?.materials_used && initialData.materials_used.length > 0) ? (initialData.materials_used as { details: string; quantity: number }[]) : [{ details: "", quantity: 1 }],
+      materials_returned: (initialData?.materials_returned && initialData.materials_returned.length > 0) ? (initialData.materials_returned as { details: string; quantity: number }[]) : [{ details: "", quantity: 1 }],
     },
   })
 
