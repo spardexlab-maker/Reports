@@ -53,7 +53,7 @@ const formSchema = z.object({
   materials_returned: z.array(materialSchema).optional(),
 })
 
-import { Profile, FaultForm, Sector, Vehicle, MaterialCatalog, FaultImage } from "@/lib/types"
+import { Profile, FaultForm as FaultFormType, Sector, Vehicle, MaterialCatalog, FaultImage } from "@/lib/types"
 
 interface FaultFormProps {
   userSectorId?: string | null
@@ -61,7 +61,7 @@ interface FaultFormProps {
   vehicles: Vehicle[]
   materials: MaterialCatalog[]
   isAdmin: boolean
-  initialData?: FaultForm
+  initialData?: FaultFormType
 }
 
 export default function FaultForm({ userSectorId, sectors, vehicles, materials, isAdmin, initialData }: FaultFormProps) {
