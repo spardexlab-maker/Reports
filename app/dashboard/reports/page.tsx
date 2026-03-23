@@ -28,25 +28,28 @@ export default async function ReportsPage() {
     redirect("/login")
   }
 
-  const { data: profile } = await supabaseAdmin
+  const profileResult = await supabaseAdmin
     .from("users")
     .select("role, sector_id")
     .eq("id", user.id)
-    .maybeSingle() as Promise<{ data: Profile | null }>
+    .maybeSingle()
+  const profile = profileResult.data as Profile | null
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
 
   // Fetch all sectors for filtering (using admin client to ensure they appear)
-  const { data: sectors } = await supabaseAdmin
+  const sectorsResult = await supabaseAdmin
     .from("sectors")
     .select("*")
-    .order("name") as Promise<{ data: Sector[] | null }>
+    .order("name")
+  const sectors = (sectorsResult.data || []) as Sector[]
 
   // Fetch all materials for filtering
-  const { data: materialsCatalog } = await supabaseAdmin
+  const materialsCatalogResult = await supabaseAdmin
     .from("materials_catalog")
     .select("*")
-    .order("name") as Promise<{ data: MaterialCatalog[] | null }>
+    .order("name")
+  const materialsCatalog = (materialsCatalogResult.data || []) as MaterialCatalog[]
 
   // Use admin client for the main query to ensure joined sector names are fetched
   let query = supabaseAdmin.from("fault_forms").select("*, sectors(name)")
@@ -55,18 +58,19 @@ export default async function ReportsPage() {
     query = query.eq("sector_id", profile.sector_id)
   }
 
-  const { data: forms } = await query as { data: FaultForm[] | null }
+  const formsResult = await query
+  const forms = (formsResult.data || []) as FaultForm[]
 
   // Fetch all materials used for these forms
-  const formIds = forms?.map((f: FaultForm) => f.id) || []
+  const formIds = forms.map((f: FaultForm) => f.id)
   let materialsUsed: MaterialUsed[] = []
   
   if (formIds.length > 0) {
-    const { data: materialsData } = await supabaseAdmin
+    const materialsDataResult = await supabaseAdmin
       .from("materials_used")
       .select("*")
-      .in("form_id", formIds) as { data: MaterialUsed[] | null }
-    materialsUsed = materialsData || []
+      .in("form_id", formIds)
+    materialsUsed = (materialsDataResult.data || []) as MaterialUsed[]
   }
 
   return (
