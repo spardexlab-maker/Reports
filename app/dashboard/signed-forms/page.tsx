@@ -39,7 +39,7 @@ export default async function SignedFormsPage() {
   const { data: signedForms } = await query
 
   // Filter out null fault_forms (due to inner join behavior with eq on related table)
-  const filteredForms = isAdmin ? signedForms : signedForms?.filter(form => form.fault_forms !== null)
+  const filteredForms = isAdmin ? signedForms : (signedForms as any[])?.filter((form: any) => form.fault_forms !== null)
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

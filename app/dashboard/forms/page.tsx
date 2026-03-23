@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Profile, FaultForm, Sector } from "@/lib/types"
 
 export const metadata: Metadata = {
   title: "البلاغات | نظام إدارة بلاغات الأعطال",
@@ -46,7 +47,7 @@ export default async function FormsPage({
     .from("users")
     .select("role, sector_id")
     .eq("id", user.id)
-    .maybeSingle()
+    .maybeSingle() as { data: Profile | null }
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
   const q = (await searchParams).q || ""
@@ -66,8 +67,8 @@ export default async function FormsPage({
   }
 
   const [{ data: forms }, { data: sectors }] = await Promise.all([
-    query,
-    supabaseAdmin.from("sectors").select("id, name")
+    query as Promise<{ data: FaultForm[] | null }>,
+    supabaseAdmin.from("sectors").select("id, name") as Promise<{ data: Sector[] | null }>
   ])
 
   return (
@@ -117,13 +118,13 @@ export default async function FormsPage({
                 </TableCell>
               </TableRow>
             ) : (
-              (forms as any[])?.map((form) => (
+              forms?.map((form: FaultForm) => (
                 <TableRow key={form.id}>
                   <TableCell className="font-medium">{form.form_number}</TableCell>
                   <TableCell>
                     {form.sectors?.name || 
                      (Array.isArray(form.sectors) ? form.sectors[0]?.name : "") ||
-                     sectors?.find((s: any) => s.id === form.sector_id)?.name || 
+                     sectors?.find((s: Sector) => s.id === form.sector_id)?.name || 
                      ""}
                   </TableCell>
                   <TableCell>{form.date}</TableCell>

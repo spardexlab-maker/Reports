@@ -39,7 +39,7 @@ export default async function ImagesPage() {
   const { data: images } = await query
 
   // Filter out null fault_forms (due to inner join behavior with eq on related table)
-  const filteredImages = isAdmin ? images : images?.filter(img => img.fault_forms !== null)
+  const filteredImages = isAdmin ? images : (images as any[])?.filter((img: any) => img.fault_forms !== null)
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

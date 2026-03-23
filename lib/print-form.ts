@@ -171,18 +171,27 @@ export async function printForm(form: any, materialsUsed: any[], materialsReturn
       windowWidth: 1000,
       onclone: (clonedDoc) => {
         // STRIP OKLCH: This is the critical fix for html2canvas crashing on modern CSS
-        const styleSheets = Array.from(clonedDoc.styleSheets);
-        for (const sheet of styleSheets) {
-          try {
-            const rules = Array.from(sheet.cssRules);
-            for (let i = rules.length - 1; i >= 0; i--) {
-              if (rules[i].cssText.includes('oklch')) {
-                sheet.deleteRule(i);
+        try {
+          const styleSheets = Array.from(clonedDoc.styleSheets);
+          for (const sheet of styleSheets) {
+            try {
+              // Check if we can access cssRules (might throw for cross-origin)
+              if (sheet && 'cssRules' in sheet && sheet.cssRules) {
+                const rules = Array.from(sheet.cssRules);
+                for (let i = rules.length - 1; i >= 0; i--) {
+                  const rule = rules[i];
+                  if (rule && 'cssText' in rule && rule.cssText.includes('oklch')) {
+                    sheet.deleteRule(i);
+                  }
+                }
               }
+            } catch (e) {
+              // Some stylesheets might be cross-origin and inaccessible
+              console.warn("Could not process stylesheet rules:", e);
             }
-          } catch (e) {
-            // Some stylesheets might be cross-origin and inaccessible
           }
+        } catch (e) {
+          console.warn("Could not process stylesheets:", e);
         }
 
         const clonedContainer = clonedDoc.getElementById("printable-form-container")

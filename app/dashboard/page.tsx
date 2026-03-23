@@ -6,6 +6,7 @@ import { FileText, CheckCircle, Clock, AlertTriangle, Building2, Package, Users 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import ReportsCharts from "@/components/reports/reports-charts"
+import { Sector, Profile, FaultForm, MaterialUsed } from "@/lib/types"
 
 export const metadata: Metadata = {
   title: "لوحة التحكم | نظام إدارة بلاغات الأعطال",
@@ -41,23 +42,23 @@ export default async function DashboardPage() {
     supabaseAdmin.from("sectors").select("id, name")
   ])
 
-  const profile = profileResult.data
+  const profile = profileResult.data as Profile | null
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
   
-  let forms = formsResult.data
+  let forms = formsResult.data as FaultForm[] | null
   let totalForms = formsResult.count
-  const sectors = sectorsResult.data || []
+  const sectors = (sectorsResult.data || []) as Sector[]
 
   // Filter forms if not admin
   if (!isAdmin && profile?.sector_id) {
-    forms = forms?.filter(f => f.sector_id === profile.sector_id) || []
+    forms = forms?.filter((f: FaultForm) => f.sector_id === profile.sector_id) || []
     totalForms = forms.length
   }
 
-  const draftForms = forms?.filter((f) => f.status === "draft").length || 0
-  const printedForms = forms?.filter((f) => f.status === "printed").length || 0
-  const signedForms = forms?.filter((f) => f.status === "signed").length || 0
-  const closedForms = forms?.filter((f) => f.status === "closed").length || 0
+  const draftForms = forms?.filter((f: FaultForm) => f.status === "draft").length || 0
+  const printedForms = forms?.filter((f: FaultForm) => f.status === "printed").length || 0
+  const signedForms = forms?.filter((f: FaultForm) => f.status === "signed").length || 0
+  const closedForms = forms?.filter((f: FaultForm) => f.status === "closed").length || 0
 
   // Admin specific stats
   let topMaterial = "لا يوجد"
@@ -69,16 +70,18 @@ export default async function DashboardPage() {
   if (isAdmin) {
     const { data: materials } = await supabase.from("materials_used").select("details")
     if (materials && materials.length > 0) {
+      const typedMaterials = materials as MaterialUsed[]
       const counts: Record<string, number> = {}
-      materials.forEach(m => {
+      typedMaterials.forEach((m: MaterialUsed) => {
         counts[m.details] = (counts[m.details] || 0) + 1
       })
       topMaterial = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b)
     }
 
-    forms?.forEach((form) => {
-      const sectorName = form.sectors?.name || 
-                         (Array.isArray(form.sectors) ? form.sectors[0]?.name : "") || 
+    forms?.forEach((form: FaultForm) => {
+      const sectorData = form.sectors as any
+      const sectorName = sectorData?.name || 
+                         (Array.isArray(sectorData) ? sectorData[0]?.name : "") || 
                          sectors.find(s => s.id === form.sector_id)?.name ||
                          "غير معروف"
       sectorCounts[sectorName] = (sectorCounts[sectorName] || 0) + 1
@@ -87,7 +90,7 @@ export default async function DashboardPage() {
     const sCounts = { draft: 0, printed: 0, signed: 0, closed: 0 }
     const dCounts: Record<string, number> = {}
 
-    forms?.forEach((form) => {
+    forms?.forEach((form: FaultForm) => {
       if (form.status in sCounts) sCounts[form.status as keyof typeof sCounts]++
       dCounts[form.date] = (dCounts[form.date] || 0) + 1
     })
@@ -246,7 +249,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              {(forms as any[])?.slice(0, 5).map((form) => (
+              {forms?.slice(0, 5).map((form: FaultForm) => (
                 <div key={form.id} className="flex items-center">
                   <div className="ml-4 space-y-1">
                     <p className="text-sm font-medium leading-none">{form.form_number}</p>
