@@ -46,7 +46,7 @@ export default async function SectorsPage() {
       .from("users")
       .select("role")
       .eq("id", user.id)
-      .single(),
+      .maybeSingle(),
     supabaseAdmin
       .from("sectors")
       .select("*")

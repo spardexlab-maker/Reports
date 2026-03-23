@@ -14,6 +14,9 @@ export const dynamic = "force-dynamic"
 export default async function NewFormPage() {
   const supabase = await createClient()
   const supabaseAdmin = createAdminClient()
+  if (!supabaseAdmin) {
+    return <div className="p-8 text-center text-destructive">خطأ: لا يمكن الاتصال بقاعدة البيانات الإدارية.</div>
+  }
 
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -26,8 +29,8 @@ export default async function NewFormPage() {
       .from("users")
       .select("role, sector_id, sectors(name, code)")
       .eq("id", user.id)
-      .single(),
-    supabaseAdmin?.from("sectors").select("*") || supabase.from("sectors").select("*"),
+      .maybeSingle(),
+    supabaseAdmin.from("sectors").select("*"),
     supabase.from("vehicles").select("*").order("name"),
     supabase.from("materials_catalog").select("*").order("name")
   ])

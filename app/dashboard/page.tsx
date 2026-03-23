@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   }
 
   const [profileResult, formsResult, sectorsResult] = await Promise.all([
-    supabaseAdmin.from("users").select("role, sector_id").eq("id", user.id).single(),
+    supabaseAdmin.from("users").select("role, sector_id").eq("id", user.id).maybeSingle(),
     supabaseAdmin.from("fault_forms").select("*, sectors(name)", { count: "exact" }),
     supabaseAdmin.from("sectors").select("id, name")
   ])

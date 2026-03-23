@@ -15,6 +15,9 @@ export const dynamic = "force-dynamic"
 export default async function ReportsPage() {
   const supabase = await createClient()
   const supabaseAdmin = createAdminClient()
+  if (!supabaseAdmin) {
+    return <div className="p-8 text-center text-destructive">خطأ: لا يمكن الاتصال بقاعدة البيانات الإدارية.</div>
+  }
 
   const {
     data: { user },
@@ -28,7 +31,7 @@ export default async function ReportsPage() {
     .from("users")
     .select("role, sector_id")
     .eq("id", user.id)
-    .single()
+    .maybeSingle()
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
 

@@ -40,21 +40,29 @@ export default async function DashboardLayout({
   }
 
   // Fetch profile and unread notifications
-  const [{ data: profile }, { count: unreadCountResult }] = await Promise.all([
-    supabaseAdmin
-      .from("users")
-      .select("role, full_name")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("is_read", false)
-  ])
+  let profile = null
+  let unreadCount = 0
+
+  try {
+    const [{ data: profileData }, { count: unreadCountResult }] = await Promise.all([
+      supabaseAdmin
+        .from("users")
+        .select("role, full_name")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false)
+    ])
+    profile = profileData
+    unreadCount = unreadCountResult || 0
+  } catch (err) {
+    console.error("Error fetching dashboard layout data:", err)
+  }
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
-  const unreadCount = unreadCountResult || 0
 
   return (
     <div className="flex min-h-screen flex-col">

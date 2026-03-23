@@ -23,11 +23,15 @@ export default async function NotificationsPage() {
   }
 
   const supabaseAdmin = createAdminClient()
+  if (!supabaseAdmin) {
+    return <div className="p-8 text-center text-destructive">خطأ: لا يمكن الاتصال بقاعدة البيانات الإدارية.</div>
+  }
+
   const { data: profile } = await supabaseAdmin
     .from("users")
     .select("role")
     .eq("id", user.id)
-    .single()
+    .maybeSingle()
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
   

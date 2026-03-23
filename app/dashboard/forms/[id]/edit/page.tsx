@@ -18,6 +18,9 @@ export default async function EditFormPage({
 }) {
   const supabase = await createClient()
   const supabaseAdmin = createAdminClient()
+  if (!supabaseAdmin) {
+    return <div className="p-8 text-center text-destructive">خطأ: لا يمكن الاتصال بقاعدة البيانات الإدارية.</div>
+  }
 
   const {
     data: { user },
@@ -34,7 +37,7 @@ export default async function EditFormPage({
       .from("users")
       .select("role, sector_id")
       .eq("id", user.id)
-      .single(),
+      .maybeSingle(),
     supabaseAdmin
       .from("fault_forms")
       .select(`
@@ -44,8 +47,8 @@ export default async function EditFormPage({
         fault_images(*)
       `)
       .eq("id", id)
-      .single(),
-    supabaseAdmin?.from("sectors").select("*") || supabase.from("sectors").select("*"),
+      .maybeSingle(),
+    supabaseAdmin.from("sectors").select("*"),
     supabase.from("vehicles").select("*").order("name"),
     supabase.from("materials_catalog").select("*").order("name")
   ])

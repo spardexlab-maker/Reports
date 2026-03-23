@@ -16,6 +16,9 @@ export const dynamic = "force-dynamic"
 export default async function GeneralSettingsPage() {
   const supabase = await createClient()
   const supabaseAdmin = createAdminClient()
+  if (!supabaseAdmin) {
+    return <div className="p-8 text-center text-destructive">خطأ: لا يمكن الاتصال بقاعدة البيانات الإدارية.</div>
+  }
 
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -27,7 +30,7 @@ export default async function GeneralSettingsPage() {
     .from("users")
     .select("role")
     .eq("id", user.id)
-    .single()
+    .maybeSingle()
 
   if (profile?.role !== "admin" && user.email !== "admin@system.local") {
     redirect("/dashboard")

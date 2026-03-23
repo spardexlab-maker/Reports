@@ -40,12 +40,16 @@ export default async function FormDetailsPage({
   const id = (await params).id
 
   const supabaseAdmin = createAdminClient()
+  if (!supabaseAdmin) {
+    return <div className="p-8 text-center text-destructive">خطأ: لا يمكن الاتصال بقاعدة البيانات الإدارية.</div>
+  }
+
   const [{ data: profile }, { data: form }] = await Promise.all([
     supabaseAdmin
       .from("users")
       .select("role, sector_id")
       .eq("id", user.id)
-      .single(),
+      .maybeSingle(),
     supabaseAdmin
       .from("fault_forms")
       .select(`
@@ -57,7 +61,7 @@ export default async function FormDetailsPage({
         signed_forms(*)
       `)
       .eq("id", id)
-      .single()
+      .maybeSingle()
   ])
 
   let sectorName = ""
