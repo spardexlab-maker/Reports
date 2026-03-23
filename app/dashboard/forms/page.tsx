@@ -117,13 +117,13 @@ export default async function FormsPage({
                 </TableCell>
               </TableRow>
             ) : (
-              forms?.map((form) => (
+              (forms as any[])?.map((form) => (
                 <TableRow key={form.id}>
                   <TableCell className="font-medium">{form.form_number}</TableCell>
                   <TableCell>
                     {form.sectors?.name || 
                      (Array.isArray(form.sectors) ? form.sectors[0]?.name : "") ||
-                     sectors?.find(s => s.id === form.sector_id)?.name || 
+                     sectors?.find((s: any) => s.id === form.sector_id)?.name || 
                      ""}
                   </TableCell>
                   <TableCell>{form.date}</TableCell>

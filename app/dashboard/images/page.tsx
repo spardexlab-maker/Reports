@@ -53,7 +53,7 @@ export default async function ImagesPage() {
             لا توجد صور مرفقة
           </div>
         ) : (
-          filteredImages?.map((image) => (
+          (filteredImages as any[])?.map((image) => (
             <Card key={image.id} className="overflow-hidden">
               <div className="relative aspect-video">
                 <Image

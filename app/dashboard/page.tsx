@@ -246,7 +246,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              {forms?.slice(0, 5).map((form) => (
+              {(forms as any[])?.slice(0, 5).map((form) => (
                 <div key={form.id} className="flex items-center">
                   <div className="ml-4 space-y-1">
                     <p className="text-sm font-medium leading-none">{form.form_number}</p>

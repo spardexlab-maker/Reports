@@ -53,7 +53,7 @@ export default async function SignedFormsPage() {
             لا توجد استمارات موقعة
           </div>
         ) : (
-          filteredForms?.map((form) => (
+          (filteredForms as any[])?.map((form) => (
             <Card key={form.id} className="overflow-hidden">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center space-x-4 rtl:space-x-reverse">

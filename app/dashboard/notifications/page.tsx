@@ -72,7 +72,7 @@ export default async function NotificationsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {notifications?.map((notification) => (
+              {(notifications as any[])?.map((notification) => (
                 <Link 
                   href={`/dashboard/forms/${notification.form_id}`} 
                   key={notification.id}

@@ -57,7 +57,7 @@ export default async function ReportsPage() {
   const { data: forms } = await query
 
   // Fetch all materials used for these forms
-  const formIds = forms?.map(f => f.id) || []
+  const formIds = (forms as any[])?.map(f => f.id) || []
   let materialsUsed: any[] = []
   
   if (formIds.length > 0) {
