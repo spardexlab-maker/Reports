@@ -1,0 +1,5 @@
+{
+  "name": "Electrical Fault Reports Manager",
+  "description": "A full-stack web application for managing electrical fault report forms across multiple sectors, featuring Arabic RTL UI, role-based access, and advanced reporting.",
+  "requestFramePermissions": []
+}
