@@ -43,11 +43,12 @@ export default async function FormsPage({
     return <div className="p-8 text-center text-destructive">خطأ: لا يمكن الاتصال بقاعدة البيانات الإدارية.</div>
   }
 
-  const { data: profile } = await supabaseAdmin
+  const profileResult = await supabaseAdmin
     .from("users")
     .select("role, sector_id")
     .eq("id", user.id)
-    .maybeSingle() as { data: Profile | null }
+    .maybeSingle()
+  const profile = profileResult.data as Profile | null
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
   const q = (await searchParams).q || ""
@@ -66,10 +67,13 @@ export default async function FormsPage({
     query = query.or(`form_number.ilike.%${q}%,station.ilike.%${q}%,feeder.ilike.%${q}%`)
   }
 
-  const [{ data: forms }, { data: sectors }] = await Promise.all([
-    query as Promise<{ data: FaultForm[] | null }>,
-    supabaseAdmin.from("sectors").select("id, name") as Promise<{ data: Sector[] | null }>
+  const [formsResult, sectorsResult] = await Promise.all([
+    query,
+    supabaseAdmin.from("sectors").select("id, name")
   ])
+
+  const forms = (formsResult.data || []) as FaultForm[]
+  const sectors = (sectorsResult.data || []) as Sector[]
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
