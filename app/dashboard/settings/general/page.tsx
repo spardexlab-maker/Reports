@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { createAdminClient } from "@/lib/supabase/admin"
 import VehiclesManagement from "@/components/settings/vehicles-management"
 import MaterialsManagement from "@/components/settings/materials-management"
+import SettingsClient from "./settings-client"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const metadata: Metadata = {
@@ -51,12 +52,16 @@ export default async function GeneralSettingsPage() {
         <TabsList>
           <TabsTrigger value="vehicles">الآليات المستخدمة</TabsTrigger>
           <TabsTrigger value="materials">المواد المستخدمة</TabsTrigger>
+          <TabsTrigger value="logos">الشعارات (Logos)</TabsTrigger>
         </TabsList>
         <TabsContent value="vehicles" className="space-y-4">
           <VehiclesManagement initialVehicles={vehiclesRes.data || []} />
         </TabsContent>
         <TabsContent value="materials" className="space-y-4">
           <MaterialsManagement initialMaterials={materialsRes.data || []} />
+        </TabsContent>
+        <TabsContent value="logos" className="space-y-4">
+          <SettingsClient />
         </TabsContent>
       </Tabs>
     </div>

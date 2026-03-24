@@ -13,8 +13,13 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={`${cairo.variable} font-cairo antialiased bg-slate-50 text-slate-900`} suppressHydrationWarning>
-        {children}
+      <body className={`${cairo.variable} font-cairo antialiased bg-slate-50 text-slate-900 min-h-screen flex flex-col`} suppressHydrationWarning>
+        <div className="flex-1 flex flex-col">
+          {children}
+        </div>
+        <footer className="py-4 text-center text-sm text-slate-500 bg-white/50 backdrop-blur-sm border-t border-slate-200">
+          Developed by <span className="font-semibold text-slate-700">Spardex Lab</span>
+        </footer>
         <Toaster />
       </body>
     </html>

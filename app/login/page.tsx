@@ -1,17 +1,39 @@
 import { Metadata } from "next"
+import Image from "next/image"
 import LoginForm from "@/components/auth/login-form"
-import { Zap, AlertTriangle } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
   title: "تسجيل الدخول | مدير تقارير الأعطال الكهربائية",
   description: "تسجيل الدخول إلى مدير تقارير الأعطال الكهربائية",
 }
 
-export default function LoginPage() {
+export const dynamic = "force-dynamic"
+
+export default async function LoginPage() {
   const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  let mainLogo = "https://i.imgur.com/WIyQapD.png"
+  let partnerLogo = ""
+
+  if (isConfigured) {
+    try {
+      const supabase = await createClient()
+      const { data: settings } = await supabase.from('settings').select('*')
+      if (settings) {
+        const dbMain = settings.find(s => s.key === 'main_logo')?.value
+        const dbPartner = settings.find(s => s.key === 'partner_logo')?.value
+        if (dbMain) mainLogo = dbMain
+        if (dbPartner) partnerLogo = dbPartner
+      }
+    } catch (e) {
+      console.error("Error fetching logos:", e)
+    }
+  }
+
   return (
-    <div className="min-h-screen w-full flex">
+    <div className="flex-1 w-full flex">
       {/* Right Side - Form */}
       <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 bg-white">
         <div className="w-full max-w-sm space-y-8">
@@ -28,8 +50,18 @@ export default function LoginPage() {
           )}
           
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-              <Zap className="w-8 h-8 text-primary" />
+            <div className="flex items-center justify-center gap-6 mb-6">
+              {partnerLogo && (
+                <>
+                  <div className="w-24 h-24 relative">
+                    <Image src={partnerLogo} alt="شعار الشريك" fill className="object-contain" priority referrerPolicy="no-referrer" />
+                  </div>
+                  <div className="h-16 w-px bg-slate-200"></div>
+                </>
+              )}
+              <div className="w-24 h-24 relative">
+                <Image src={mainLogo} alt="شعار النظام" fill className="object-contain" priority referrerPolicy="no-referrer" />
+              </div>
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
               مدير تقارير الأعطال الكهربائية

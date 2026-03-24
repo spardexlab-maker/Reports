@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import DashboardNav from "@/components/dashboard/nav"
@@ -17,7 +18,7 @@ export default async function DashboardLayout({
 
   if (!supabaseAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="flex flex-1 items-center justify-center p-4">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold text-destructive">خطأ في تهيئة النظام</h1>
           <p>يرجى التأكد من إضافة SUPABASE_SERVICE_ROLE_KEY في الإعدادات.</p>
@@ -39,12 +40,14 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
-  // Fetch profile and unread notifications
+  // Fetch profile, unread notifications, and settings
   let profile = null
   let unreadCount = 0
+  let mainLogo = "https://i.imgur.com/WIyQapD.png"
+  let partnerLogo = ""
 
   try {
-    const [{ data: profileData }, { count: unreadCountResult }] = await Promise.all([
+    const [{ data: profileData }, { count: unreadCountResult }, { data: settingsData }] = await Promise.all([
       supabaseAdmin
         .from("users")
         .select("role, full_name")
@@ -54,10 +57,20 @@ export default async function DashboardLayout({
         .from("notifications")
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id)
-        .eq("is_read", false)
+        .eq("is_read", false),
+      supabase
+        .from("settings")
+        .select("*")
     ])
     profile = profileData
     unreadCount = unreadCountResult || 0
+    
+    if (settingsData) {
+      const dbMain = settingsData.find(s => s.key === 'main_logo')?.value
+      const dbPartner = settingsData.find(s => s.key === 'partner_logo')?.value
+      if (dbMain) mainLogo = dbMain
+      if (dbPartner) partnerLogo = dbPartner
+    }
   } catch (err) {
     console.error("Error fetching dashboard layout data:", err)
   }
@@ -65,11 +78,20 @@ export default async function DashboardLayout({
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-40 border-b bg-background">
         <div className="container flex h-16 items-center justify-between py-4">
-          <div className="flex items-center gap-4">
-            <span className="text-lg font-bold">نظام إدارة بلاغات الأعطال</span>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              {partnerLogo && (
+                <>
+                  <Image src={partnerLogo} alt="شعار الشريك" width={40} height={40} className="object-contain" priority referrerPolicy="no-referrer" />
+                  <div className="h-6 w-px bg-slate-300"></div>
+                </>
+              )}
+              <Image src={mainLogo} alt="شعار النظام" width={40} height={40} className="object-contain" priority referrerPolicy="no-referrer" />
+              <span className="text-lg font-bold hidden sm:inline-block">نظام إدارة بلاغات الأعطال</span>
+            </div>
             <DashboardNav isAdmin={isAdmin} />
           </div>
           <div className="flex items-center gap-4">
