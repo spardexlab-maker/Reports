@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,11 +19,7 @@ export default function SettingsClient() {
   const { toast } = useToast()
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchSettings()
-  }, [])
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase.from('settings').select('*')
       if (error) throw error
@@ -39,7 +35,11 @@ export default function SettingsClient() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchSettings()
+  }, [fetchSettings])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: 'main_logo' | 'partner_logo') => {
     try {
@@ -85,10 +85,14 @@ export default function SettingsClient() {
         description: "تم تحديث الشعار بنجاح.",
       })
     } catch (error: any) {
+      let message = error.message || "حدث خطأ أثناء رفع الشعار."
+      if (message.includes("schema cache") || message.includes("42P01")) {
+        message = "جدول 'settings' غير موجود في قاعدة البيانات. يرجى مراجعة قسم 'إعداد قاعدة البيانات' في أعلى الصفحة."
+      }
       toast({
         variant: "destructive",
         title: "خطأ في الرفع",
-        description: error.message || "حدث خطأ أثناء رفع الشعار.",
+        description: message,
       })
     } finally {
       if (key === 'main_logo') setUploadingMain(false)

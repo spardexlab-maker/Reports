@@ -59,7 +59,9 @@ export default async function FormDetailsPage({
         materials_used(*),
         materials_returned(*),
         fault_images(*),
-        signed_forms(*)
+        signed_forms(*),
+        vehicles_used_log(*),
+        crew_used_log(*)
       `)
       .eq("id", id)
       .maybeSingle()
@@ -263,15 +265,31 @@ export default async function FormDetailsPage({
         <CardContent className="space-y-4">
           <div>
             <h4 className="font-semibold mb-1">السيارات المستخدمة:</h4>
-            <p className="text-muted-foreground">{form.vehicles_used || "لا يوجد"}</p>
+            {form.vehicles_used_log && form.vehicles_used_log.length > 0 ? (
+              <ul className="list-disc list-inside text-muted-foreground">
+                {form.vehicles_used_log.map((v: any) => (
+                  <li key={v.id}>{v.vehicle_name} ({v.hours} ساعة)</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground">{form.vehicles_used || "لا يوجد"}</p>
+            )}
+          </div>
+          <div>
+            <h4 className="font-semibold mb-1">الطاقم الفني:</h4>
+            {form.crew_used_log && form.crew_used_log.length > 0 ? (
+              <ul className="list-disc list-inside text-muted-foreground">
+                {form.crew_used_log.map((c: any) => (
+                  <li key={c.id}>{c.crew_name} ({c.hours} ساعة)</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground whitespace-pre-wrap">{form.technical_staff || "لا يوجد"}</p>
+            )}
           </div>
           <div>
             <h4 className="font-semibold mb-1">المعوقات والمشاكل:</h4>
             <p className="text-muted-foreground">{form.obstacles_problems || "لا يوجد"}</p>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-1">الطاقم الفني:</h4>
-            <p className="text-muted-foreground whitespace-pre-wrap">{form.technical_staff}</p>
           </div>
         </CardContent>
       </Card>

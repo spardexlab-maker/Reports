@@ -4,7 +4,9 @@ import { redirect } from "next/navigation"
 import { createAdminClient } from "@/lib/supabase/admin"
 import VehiclesManagement from "@/components/settings/vehicles-management"
 import MaterialsManagement from "@/components/settings/materials-management"
+import CrewManagement from "@/components/settings/crew-management"
 import SettingsClient from "./settings-client"
+import DatabaseSetupChecker from "@/components/settings/database-setup-checker"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const metadata: Metadata = {
@@ -37,9 +39,10 @@ export default async function GeneralSettingsPage() {
     redirect("/dashboard")
   }
 
-  const [vehiclesRes, materialsRes] = await Promise.all([
+  const [vehiclesRes, materialsRes, crewRes] = await Promise.all([
     supabase.from("vehicles").select("*").order("name"),
-    supabase.from("materials_catalog").select("*").order("name")
+    supabase.from("materials_catalog").select("*").order("name"),
+    supabase.from("crew_members").select("*").order("name")
   ])
 
   return (
@@ -47,11 +50,14 @@ export default async function GeneralSettingsPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">الإعدادات العامة</h2>
       </div>
+
+      <DatabaseSetupChecker />
       
       <Tabs defaultValue="vehicles" className="space-y-4" dir="rtl">
         <TabsList>
           <TabsTrigger value="vehicles">الآليات المستخدمة</TabsTrigger>
           <TabsTrigger value="materials">المواد المستخدمة</TabsTrigger>
+          <TabsTrigger value="crew">الطاقم الفني</TabsTrigger>
           <TabsTrigger value="logos">الشعارات (Logos)</TabsTrigger>
         </TabsList>
         <TabsContent value="vehicles" className="space-y-4">
@@ -59,6 +65,9 @@ export default async function GeneralSettingsPage() {
         </TabsContent>
         <TabsContent value="materials" className="space-y-4">
           <MaterialsManagement initialMaterials={materialsRes.data || []} />
+        </TabsContent>
+        <TabsContent value="crew" className="space-y-4">
+          <CrewManagement initialCrew={crewRes.data || []} />
         </TabsContent>
         <TabsContent value="logos" className="space-y-4">
           <SettingsClient />

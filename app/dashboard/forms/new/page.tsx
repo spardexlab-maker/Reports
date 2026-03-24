@@ -24,7 +24,7 @@ export default async function NewFormPage() {
     redirect("/login")
   }
 
-  const [{ data: profile }, { data: sectors }, { data: vehicles }, { data: materials }] = await Promise.all([
+  const [{ data: profile }, { data: sectors }, { data: vehicles }, { data: materials }, { data: crewMembers }] = await Promise.all([
     supabaseAdmin
       .from("users")
       .select("role, sector_id, sectors(name, code)")
@@ -32,7 +32,8 @@ export default async function NewFormPage() {
       .maybeSingle(),
     supabaseAdmin.from("sectors").select("*"),
     supabase.from("vehicles").select("*").order("name"),
-    supabase.from("materials_catalog").select("*").order("name")
+    supabase.from("materials_catalog").select("*").order("name"),
+    supabase.from("crew_members").select("*").order("name")
   ])
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
@@ -47,6 +48,7 @@ export default async function NewFormPage() {
         sectors={sectors || []} 
         vehicles={vehicles || []}
         materials={materials || []}
+        crewMembers={crewMembers || []}
         isAdmin={isAdmin} 
       />
     </div>

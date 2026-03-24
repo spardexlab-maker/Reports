@@ -64,13 +64,18 @@ export default async function ReportsPage() {
   // Fetch all materials used for these forms
   const formIds = forms.map((f: FaultForm) => f.id)
   let materialsUsed: MaterialUsed[] = []
+  let vehiclesUsedLog: any[] = []
+  let crewUsedLog: any[] = []
   
   if (formIds.length > 0) {
-    const materialsDataResult = await supabaseAdmin
-      .from("materials_used")
-      .select("*")
-      .in("form_id", formIds)
+    const [materialsDataResult, vehiclesLogResult, crewLogResult] = await Promise.all([
+      supabaseAdmin.from("materials_used").select("*").in("form_id", formIds),
+      supabaseAdmin.from("vehicles_used_log").select("*").in("form_id", formIds),
+      supabaseAdmin.from("crew_used_log").select("*").in("form_id", formIds)
+    ])
     materialsUsed = (materialsDataResult.data || []) as MaterialUsed[]
+    vehiclesUsedLog = vehiclesLogResult.data || []
+    crewUsedLog = crewLogResult.data || []
   }
 
   return (
@@ -82,6 +87,8 @@ export default async function ReportsPage() {
       <DetailedReports 
         forms={forms || []} 
         materialsUsed={materialsUsed}
+        vehiclesUsedLog={vehiclesUsedLog}
+        crewUsedLog={crewUsedLog}
         sectors={sectors || []}
         materialsCatalog={materialsCatalog || []}
         isAdmin={isAdmin}

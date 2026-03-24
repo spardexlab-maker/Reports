@@ -32,7 +32,7 @@ export default async function EditFormPage({
 
   const id = (await params).id
 
-  const [{ data: profile }, { data: form }, { data: sectors }, { data: vehicles }, { data: materials }] = await Promise.all([
+  const [{ data: profile }, { data: form }, { data: sectors }, { data: vehicles }, { data: materials }, { data: crewMembers }] = await Promise.all([
     supabaseAdmin
       .from("users")
       .select("role, sector_id")
@@ -44,13 +44,16 @@ export default async function EditFormPage({
         *,
         materials_used(*),
         materials_returned(*),
-        fault_images(*)
+        fault_images(*),
+        vehicles_used_log(*),
+        crew_used_log(*)
       `)
       .eq("id", id)
       .maybeSingle(),
     supabaseAdmin.from("sectors").select("*"),
     supabase.from("vehicles").select("*").order("name"),
-    supabase.from("materials_catalog").select("*").order("name")
+    supabase.from("materials_catalog").select("*").order("name"),
+    supabase.from("crew_members").select("*").order("name")
   ])
 
   if (!form) {
@@ -79,6 +82,7 @@ export default async function EditFormPage({
         sectors={sectors || []} 
         vehicles={vehicles || []}
         materials={materials || []}
+        crewMembers={crewMembers || []}
         isAdmin={isAdmin}
         initialData={form}
       />

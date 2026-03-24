@@ -136,15 +136,23 @@ export async function printForm(form: FaultForm, materialsUsed: MaterialUsed[], 
       <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">معلومات إضافية</h3>
       <div style="margin-bottom: 20px;">
         <div style="font-weight: bold; margin-bottom: 8px; color: #64748b;">السيارات المستخدمة:</div>
-        <div style="color: #1e293b; font-size: 16px;">${form.vehicles_used || "لا يوجد"}</div>
+        <div style="color: #1e293b; font-size: 16px;">
+          ${form.vehicles_used_log && form.vehicles_used_log.length > 0 ? 
+            `<ul style="margin: 0; padding-right: 20px;">${form.vehicles_used_log.map(v => `<li>${v.vehicle_name} (${v.hours} ساعة)</li>`).join('')}</ul>` : 
+            (form.vehicles_used || "لا يوجد")}
+        </div>
       </div>
       <div style="margin-bottom: 20px;">
-        <div style="font-weight: bold; margin-bottom: 8px; color: #64748b;">المعوقات والمشاكل:</div>
-        <div style="color: #1e293b; font-size: 16px;">${form.obstacles_problems || "لا يوجد"}</div>
+        <div style="font-weight: bold; margin-bottom: 8px; color: #64748b;">الطاقم الفني:</div>
+        <div style="color: #1e293b; font-size: 16px; white-space: pre-wrap;">
+          ${form.crew_used_log && form.crew_used_log.length > 0 ? 
+            `<ul style="margin: 0; padding-right: 20px;">${form.crew_used_log.map(c => `<li>${c.crew_name} (${c.hours} ساعة)</li>`).join('')}</ul>` : 
+            (form.technical_staff || "غير محدد")}
+        </div>
       </div>
       <div>
-        <div style="font-weight: bold; margin-bottom: 8px; color: #64748b;">الطاقم الفني:</div>
-        <div style="color: #1e293b; font-size: 16px; white-space: pre-wrap;">${form.technical_staff || "غير محدد"}</div>
+        <div style="font-weight: bold; margin-bottom: 8px; color: #64748b;">المعوقات والمشاكل:</div>
+        <div style="color: #1e293b; font-size: 16px;">${form.obstacles_problems || "لا يوجد"}</div>
       </div>
     </div>
     <div style="display: flex; justify-content: space-around; margin-top: 60px; padding-bottom: 60px;">

@@ -35,6 +35,16 @@ const materialSchema = z.object({
   quantity: z.number().min(1, "الكمية مطلوبة"),
 })
 
+const vehicleLogSchema = z.object({
+  vehicle_name: z.string().min(1, "الآلية مطلوبة"),
+  hours: z.number().min(0, "الساعات مطلوبة"),
+})
+
+const crewLogSchema = z.object({
+  crew_name: z.string().min(1, "عضو الطاقم مطلوب"),
+  hours: z.number().min(0, "الساعات مطلوبة"),
+})
+
 const formSchema = z.object({
   sector_id: z.string().uuid("القطاع مطلوب"),
   day: z.string().min(1, "اليوم مطلوب"),
@@ -48,23 +58,26 @@ const formSchema = z.object({
   fault_details: z.string().min(1, "تفاصيل العطل مطلوبة"),
   vehicles_used: z.string().optional(),
   obstacles_problems: z.string().optional(),
-  technical_staff: z.string().min(1, "الطاقم الفني مطلوب"),
+  technical_staff: z.string().optional(),
   materials_used: z.array(materialSchema).optional(),
   materials_returned: z.array(materialSchema).optional(),
+  vehicles_used_log: z.array(vehicleLogSchema).optional(),
+  crew_used_log: z.array(crewLogSchema).optional(),
 })
 
-import { Profile, FaultForm as FaultFormType, Sector, Vehicle, MaterialCatalog, FaultImage } from "@/lib/types"
+import { Profile, FaultForm as FaultFormType, Sector, Vehicle, MaterialCatalog, FaultImage, CrewMember } from "@/lib/types"
 
 interface FaultFormProps {
   userSectorId?: string | null
   sectors: Sector[]
   vehicles: Vehicle[]
   materials: MaterialCatalog[]
+  crewMembers: CrewMember[]
   isAdmin: boolean
   initialData?: FaultFormType
 }
 
-export default function FaultForm({ userSectorId, sectors, vehicles, materials, isAdmin, initialData }: FaultFormProps) {
+export default function FaultForm({ userSectorId, sectors, vehicles, materials, crewMembers, isAdmin, initialData }: FaultFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
@@ -91,6 +104,8 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
       technical_staff: initialData?.technical_staff || "",
       materials_used: (initialData?.materials_used && initialData.materials_used.length > 0) ? (initialData.materials_used as { details: string; quantity: number }[]) : [{ details: "", quantity: 1 }],
       materials_returned: (initialData?.materials_returned && initialData.materials_returned.length > 0) ? (initialData.materials_returned as { details: string; quantity: number }[]) : [{ details: "", quantity: 1 }],
+      vehicles_used_log: (initialData?.vehicles_used_log && initialData.vehicles_used_log.length > 0) ? (initialData.vehicles_used_log as { vehicle_name: string; hours: number }[]) : [],
+      crew_used_log: (initialData?.crew_used_log && initialData.crew_used_log.length > 0) ? (initialData.crew_used_log as { crew_name: string; hours: number }[]) : [],
     },
   })
 
@@ -114,6 +129,16 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
   const { fields: returnedFields, append: appendReturned, remove: removeReturned } = useFieldArray({
     control: form.control,
     name: "materials_returned",
+  })
+
+  const { fields: vehicleFields, append: appendVehicle, remove: removeVehicle } = useFieldArray({
+    control: form.control,
+    name: "vehicles_used_log",
+  })
+
+  const { fields: crewFields, append: appendCrew, remove: removeCrew } = useFieldArray({
+    control: form.control,
+    name: "crew_used_log",
   })
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,9 +199,11 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
 
         if (formError) throw formError
 
-        // Delete existing materials
+        // Delete existing materials and logs
         await supabase.from("materials_used").delete().eq("form_id", formId)
         await supabase.from("materials_returned").delete().eq("form_id", formId)
+        await supabase.from("vehicles_used_log").delete().eq("form_id", formId)
+        await supabase.from("crew_used_log").delete().eq("form_id", formId)
       } else {
         // Insert form
         const { data: formResult, error: formError } = await supabase
@@ -267,6 +294,34 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
         }
       }
 
+      // Insert vehicles used log
+      if (values.vehicles_used_log && values.vehicles_used_log.length > 0) {
+        const vehiclesData = values.vehicles_used_log.map((v) => ({
+          form_id: formId,
+          vehicle_name: v.vehicle_name,
+          hours: v.hours,
+        })).filter(v => v.vehicle_name.trim() !== "")
+
+        if (vehiclesData.length > 0) {
+          const { error: vehiclesError } = await supabase.from("vehicles_used_log").insert(vehiclesData)
+          if (vehiclesError) throw vehiclesError
+        }
+      }
+
+      // Insert crew used log
+      if (values.crew_used_log && values.crew_used_log.length > 0) {
+        const crewData = values.crew_used_log.map((c) => ({
+          form_id: formId,
+          crew_name: c.crew_name,
+          hours: c.hours,
+        })).filter(c => c.crew_name.trim() !== "")
+
+        if (crewData.length > 0) {
+          const { error: crewError } = await supabase.from("crew_used_log").insert(crewData)
+          if (crewError) throw crewError
+        }
+      }
+
       toast({
         title: initialData ? "تم التحديث بنجاح" : "تم الحفظ بنجاح",
         description: initialData ? "تم تحديث بيانات البلاغ بنجاح." : "تم إنشاء بلاغ العطل بنجاح.",
@@ -275,9 +330,13 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
       router.push(`/dashboard/forms/${formId}`)
     } catch (error: any) {
       console.error("Form submission error:", error)
+      let message = error?.message || "حدث خطأ أثناء حفظ البلاغ."
+      if (message.includes("schema cache") || message.includes("42P01")) {
+        message = "بعض الجداول المطلوبة غير موجودة في قاعدة البيانات. يرجى مراجعة الإعدادات العامة لإكمال الإعداد."
+      }
       toast({
         title: "خطأ",
-        description: error?.message || "حدث خطأ أثناء حفظ البلاغ.",
+        description: message,
         variant: "destructive",
       })
     } finally {
@@ -670,6 +729,158 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
           </Card>
         </div>
 
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>الآليات المستخدمة</CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendVehicle({ vehicle_name: "", hours: 1 })}
+                disabled={isLoading}
+              >
+                <Plus className="mr-2 h-4 w-4 ml-2" />
+                إضافة آلية
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {vehicleFields.map((field, index) => (
+                <div key={field.id} className="flex items-end gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`vehicles_used_log.${index}.vehicle_name`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>الآلية</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger disabled={isLoading}>
+                              <SelectValue placeholder="اختر الآلية..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vehicles.map((v) => (
+                              <SelectItem key={v.id} value={v.name}>
+                                {v.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`vehicles_used_log.${index}.hours`}
+                    render={({ field }) => (
+                      <FormItem className="w-24">
+                        <FormLabel>الساعات</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            step="0.5"
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : "")}
+                            disabled={isLoading} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => removeVehicle(index)}
+                    disabled={isLoading}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>الطاقم الفني</CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => appendCrew({ crew_name: "", hours: 1 })}
+                disabled={isLoading}
+              >
+                <Plus className="mr-2 h-4 w-4 ml-2" />
+                إضافة عضو
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {crewFields.map((field, index) => (
+                <div key={field.id} className="flex items-end gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`crew_used_log.${index}.crew_name`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <FormLabel>عضو الطاقم</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger disabled={isLoading}>
+                              <SelectValue placeholder="اختر العضو..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {crewMembers.map((c) => (
+                              <SelectItem key={c.id} value={c.name}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`crew_used_log.${index}.hours`}
+                    render={({ field }) => (
+                      <FormItem className="w-24">
+                        <FormLabel>الساعات</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            step="0.5"
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : "")}
+                            disabled={isLoading} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => removeCrew(index)}
+                    disabled={isLoading}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>معلومات إضافية</CardTitle>
@@ -677,47 +888,10 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
           <CardContent className="grid gap-6">
             <FormField
               control={form.control}
-              name="vehicles_used"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>السيارات المستخدمة</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger disabled={isLoading}>
-                        <SelectValue placeholder="اختر السيارة..." />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {vehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.name}>
-                          {v.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="obstacles_problems"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>المعوقات والمشاكل</FormLabel>
-                  <FormControl>
-                    <Textarea rows={3} {...field} disabled={isLoading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="technical_staff"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الطاقم الفني</FormLabel>
                   <FormControl>
                     <Textarea rows={3} {...field} disabled={isLoading} />
                   </FormControl>

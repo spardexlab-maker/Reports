@@ -10,6 +10,7 @@ interface ReportData {
     statusCounts: Record<string, number>
     materialUsage: { name: string; value: number }[]
     vehicleUsage: { name: string; value: number }[]
+    crewUsage: { name: string; value: number }[]
   }
   filteredForms: FaultForm[]
 }
@@ -85,7 +86,7 @@ export async function printReport(data: ReportData, title: string) {
   `
 
   const materialsTableHtml = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
       <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
         <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">ملخص استهلاك المواد</h3>
         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
@@ -111,7 +112,7 @@ export async function printReport(data: ReportData, title: string) {
           <thead>
             <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
               <th style="padding: 10px; text-align: right;">الآلية</th>
-              <th style="padding: 10px; text-align: right;">التكرار</th>
+              <th style="padding: 10px; text-align: right;">الساعات</th>
             </tr>
           </thead>
           <tbody>
@@ -119,6 +120,25 @@ export async function printReport(data: ReportData, title: string) {
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 10px;">${v.name}</td>
                 <td style="padding: 10px; font-weight: bold; color: #ea580c;">${v.value}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+        <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">ملخص الطاقم الفني</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="padding: 10px; text-align: right;">العضو</th>
+              <th style="padding: 10px; text-align: right;">الساعات</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.stats.crewUsage.map((c: any) => `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px;">${c.name}</td>
+                <td style="padding: 10px; font-weight: bold; color: #16a34a;">${c.value}</td>
               </tr>
             `).join('')}
           </tbody>

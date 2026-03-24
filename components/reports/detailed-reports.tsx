@@ -43,6 +43,8 @@ import { printReport } from "@/lib/print-report"
 interface DetailedReportsProps {
   forms: any[]
   materialsUsed: any[]
+  vehiclesUsedLog?: any[]
+  crewUsedLog?: any[]
   sectors: any[]
   materialsCatalog: any[]
   isAdmin: boolean
@@ -54,6 +56,8 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
 export default function DetailedReports({
   forms,
   materialsUsed,
+  vehiclesUsedLog = [],
+  crewUsedLog = [],
   sectors,
   materialsCatalog,
   isAdmin,
@@ -61,6 +65,7 @@ export default function DetailedReports({
 }: DetailedReportsProps) {
   const [sectorFilter, setSectorFilter] = useState<string>("all")
   const [materialFilter, setMaterialFilter] = useState<string>("all")
+  const [crewFilter, setCrewFilter] = useState<string>("all")
   const [startDate, setStartDate] = useState<string>("")
   const [endDate, setEndDate] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState<string>("")
@@ -96,7 +101,7 @@ export default function DetailedReports({
         if (!matchesSearch) return false
       }
 
-      // Material filter (if a specific material is selected, form must use it)
+      // Material filter
       if (materialFilter !== "all") {
         const usesMaterial = materialsUsed.some(
           (m) => m.form_id === form.id && m.details === materialFilter
@@ -104,9 +109,17 @@ export default function DetailedReports({
         if (!usesMaterial) return false
       }
 
+      // Crew filter
+      if (crewFilter !== "all") {
+        const usesCrew = crewUsedLog.some(
+          (c) => c.form_id === form.id && c.crew_name === crewFilter
+        )
+        if (!usesCrew) return false
+      }
+
       return true
     })
-  }, [forms, sectorFilter, materialFilter, startDate, endDate, searchQuery, isAdmin, materialsUsed])
+  }, [forms, sectorFilter, materialFilter, crewFilter, startDate, endDate, searchQuery, isAdmin, materialsUsed, crewUsedLog])
 
   const filteredMaterialsUsed = useMemo(() => {
     const formIds = new Set(filteredForms.map((f) => f.id))
@@ -116,6 +129,20 @@ export default function DetailedReports({
       return true
     })
   }, [materialsUsed, filteredForms, materialFilter])
+
+  const filteredVehiclesLog = useMemo(() => {
+    const formIds = new Set(filteredForms.map((f) => f.id))
+    return vehiclesUsedLog.filter((v) => formIds.has(v.form_id))
+  }, [vehiclesUsedLog, filteredForms])
+
+  const filteredCrewLog = useMemo(() => {
+    const formIds = new Set(filteredForms.map((f) => f.id))
+    return crewUsedLog.filter((c) => {
+      if (!formIds.has(c.form_id)) return false
+      if (crewFilter !== "all" && c.crew_name !== crewFilter) return false
+      return true
+    })
+  }, [crewUsedLog, filteredForms, crewFilter])
 
   // Statistics
   const stats = useMemo(() => {
@@ -132,16 +159,16 @@ export default function DetailedReports({
       return acc
     }, {} as Record<string, number>)
 
-    // Vehicle statistics
+    // Vehicle statistics (hours)
     const vehicleUsage: Record<string, number> = {}
-    filteredForms.forEach(form => {
-      if (form.vehicles_used) {
-        // Split by comma or newline if multiple vehicles are listed
-        const vehicles = form.vehicles_used.split(/[,\n]/).map((v: string) => v.trim()).filter(Boolean)
-        vehicles.forEach((v: string) => {
-          vehicleUsage[v] = (vehicleUsage[v] || 0) + 1
-        })
-      }
+    filteredVehiclesLog.forEach(v => {
+      vehicleUsage[v.vehicle_name] = (vehicleUsage[v.vehicle_name] || 0) + (Number(v.hours) || 0)
+    })
+
+    // Crew statistics (hours)
+    const crewUsage: Record<string, number> = {}
+    filteredCrewLog.forEach(c => {
+      crewUsage[c.crew_name] = (crewUsage[c.crew_name] || 0) + (Number(c.hours) || 0)
     })
 
     return {
@@ -154,9 +181,12 @@ export default function DetailedReports({
         .slice(0, 10), // Top 10 materials
       vehicleUsage: Object.entries(vehicleUsage)
         .map(([name, value]) => ({ name, value: value as number }))
+        .sort((a, b) => b.value - a.value),
+      crewUsage: Object.entries(crewUsage)
+        .map(([name, value]) => ({ name, value: value as number }))
         .sort((a, b) => b.value - a.value)
     }
-  }, [filteredForms, filteredMaterialsUsed])
+  }, [filteredForms, filteredMaterialsUsed, filteredVehiclesLog, filteredCrewLog])
 
   const statusData = [
     { name: "مسودة", value: stats.statusCounts.draft || 0 },
@@ -180,6 +210,14 @@ export default function DetailedReports({
         .map(m => `${m.details} (${m.quantity})`)
         .join(", ")
 
+      const vehicles = vehiclesUsedLog.filter(v => v.form_id === form.id)
+      const formVehiclesNames = vehicles.map(v => v.vehicle_name).join(", ")
+      const formVehiclesHours = vehicles.map(v => v.hours).join(", ")
+
+      const crew = crewUsedLog.filter(c => c.form_id === form.id)
+      const formCrewNames = crew.map(c => c.crew_name).join(", ")
+      const formCrewHours = crew.map(c => c.hours).join(", ")
+
       const sectorName = Array.isArray(form.sectors)
         ? form.sectors[0]?.name
         : form.sectors?.name || 
@@ -202,9 +240,11 @@ export default function DetailedReports({
                  form.status === 'printed' ? 'مطبوع' : 
                  form.status === 'signed' ? 'موقع' : 'مغلق',
         "المواد المستخدمة": formMaterials,
-        "السيارات المستخدمة": form.vehicles_used,
+        "السيارات المستخدمة": formVehiclesNames,
+        "ساعات عمل الآليات": formVehiclesHours,
         "المعوقات": form.obstacles_problems,
-        "الطاقم الفني": form.technical_staff
+        "الطاقم الفني": formCrewNames,
+        "ساعات عمل الطاقم": formCrewHours
       }
     })
 
@@ -216,7 +256,7 @@ export default function DetailedReports({
     const wscols = [
       { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
-      { wch: 30 }, { wch: 10 }, { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 30 }
+      { wch: 30 }, { wch: 10 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 15 }
     ]
     worksheet["!cols"] = wscols
 
@@ -269,6 +309,23 @@ export default function DetailedReports({
                   {materialsCatalog.map((m) => (
                     <SelectItem key={m.id} value={m.name}>
                       {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>الطاقم الفني</Label>
+              <Select value={crewFilter} onValueChange={setCrewFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر عضو الطاقم" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الأعضاء</SelectItem>
+                  {Array.from(new Set(crewUsedLog.map(c => c.crew_name))).map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -464,7 +521,7 @@ export default function DetailedReports({
         {/* Vehicles Summary Table */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-base">ملخص استخدام الآليات</CardTitle>
+            <CardTitle className="text-base">ملخص استخدام الآليات (ساعات)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border overflow-hidden">
@@ -472,7 +529,7 @@ export default function DetailedReports({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-right text-xs">الآلية</TableHead>
-                    <TableHead className="text-right text-xs">التكرار</TableHead>
+                    <TableHead className="text-right text-xs">الساعات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -496,8 +553,43 @@ export default function DetailedReports({
           </CardContent>
         </Card>
 
+        {/* Crew Summary Table */}
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-base">ملخص الطاقم الفني (ساعات)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="text-right text-xs">العضو</TableHead>
+                    <TableHead className="text-right text-xs">الساعات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.crewUsage.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center py-4 text-muted-foreground text-xs">
+                        لا توجد بيانات
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    stats.crewUsage.map((c, i) => (
+                      <TableRow key={i} className="hover:bg-muted/30">
+                        <TableCell className="font-medium text-xs">{c.name}</TableCell>
+                        <TableCell className="text-xs font-bold text-green-600">{c.value}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Forms Table */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-4">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">تفاصيل البلاغات</CardTitle>
             <div className="flex gap-2 no-print">

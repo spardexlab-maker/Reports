@@ -46,6 +46,8 @@ export interface FaultForm {
   materials_returned?: MaterialReturned[]
   fault_images?: FaultImage[]
   signed_forms?: SignedForm[]
+  vehicles_used_log?: VehicleUsedLog[]
+  crew_used_log?: CrewUsedLog[]
   
   // Client-side helper
   resolved_sector_name?: string
@@ -94,5 +96,27 @@ export interface Vehicle {
   id: string
   name: string
   plate_number?: string
+  created_at?: string
+}
+
+export interface CrewMember {
+  id: string
+  name: string
+  created_at?: string
+}
+
+export interface VehicleUsedLog {
+  id: string
+  form_id: string
+  vehicle_name: string
+  hours: number
+  created_at?: string
+}
+
+export interface CrewUsedLog {
+  id: string
+  form_id: string
+  crew_name: string
+  hours: number
   created_at?: string
 }
