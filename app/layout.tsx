@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import type {Metadata} from 'next';
 import { Cairo } from 'next/font/google';
 import './globals.css'; // Global styles
@@ -17,8 +18,16 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <div className="flex-1 flex flex-col">
           {children}
         </div>
-        <footer className="py-4 text-center text-sm text-slate-500 bg-white/50 backdrop-blur-sm border-t border-slate-200">
-          Developed by <span className="font-semibold text-slate-700">Spardex Lab</span>
+        <footer className="py-4 text-center text-xs sm:text-sm text-slate-500 bg-white/50 backdrop-blur-sm border-t border-slate-200 flex items-center justify-center gap-2">
+          <span>Developed by <span className="font-semibold text-slate-700">Spardex Lab</span></span>
+          <Image 
+            src="/spardex-logo.png" 
+            alt="Spardex Lab Logo" 
+            width={20} 
+            height={20} 
+            className="h-5 w-auto"
+            referrerPolicy="no-referrer"
+          />
         </footer>
         <Toaster />
       </body>
