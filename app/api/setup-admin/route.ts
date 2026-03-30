@@ -18,7 +18,7 @@ export async function GET() {
       return NextResponse.json({ error: listError.message }, { status: 500 })
     }
 
-    let userId = existingUsers.users.find(u => u.email === email)?.id
+    let userId = existingUsers.users.find((u: any) => u.email === email)?.id
 
     if (!userId) {
       // 2. Create user in auth.users
@@ -54,7 +54,6 @@ export async function GET() {
       const { error: insertError } = await supabaseAdmin.from("users").insert({
         id: userId,
         full_name: fullName,
-        email: email,
         role: "admin",
       })
 
