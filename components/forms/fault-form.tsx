@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useFieldArray, useForm } from "react-hook-form"
 import * as z from "zod"
 import Image from "next/image"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import { Loader2, Plus, Trash2, CheckCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -55,7 +55,12 @@ const formSchema = z.object({
   station: z.string().min(1, "المحطة مطلوبة"),
   address: z.string().min(1, "العنوان مطلوب"),
   work_order_number: z.string().min(1, "رقم أمر العمل مطلوب"),
+  complaint_number: z.string().min(1, "رقم الشكوى مطلوب"),
   fault_details: z.string().min(1, "تفاصيل العطل مطلوبة"),
+  fault_duration: z.string().optional(),
+  location_link: z.string().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   vehicles_used: z.string().optional(),
   obstacles_problems: z.string().optional(),
   technical_staff: z.string().optional(),
@@ -66,6 +71,7 @@ const formSchema = z.object({
 })
 
 import { Profile, FaultForm as FaultFormType, Sector, Vehicle, MaterialCatalog, FaultImage, CrewMember } from "@/lib/types"
+import { extractCoordinatesFromUrl } from "@/lib/location-utils"
 
 interface FaultFormProps {
   userSectorId?: string | null
@@ -98,7 +104,12 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
       station: initialData?.station || "",
       address: initialData?.address || "",
       work_order_number: initialData?.work_order_number || "",
+      complaint_number: initialData?.complaint_number || "",
       fault_details: initialData?.fault_details || "",
+      fault_duration: initialData?.fault_duration || "",
+      location_link: initialData?.location_link || "",
+      latitude: initialData?.latitude || null,
+      longitude: initialData?.longitude || null,
       vehicles_used: initialData?.vehicles_used || "",
       obstacles_problems: initialData?.obstacles_problems || "",
       technical_staff: initialData?.technical_staff || "",
@@ -111,6 +122,44 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
 
   const selectedSectorId = form.watch("sector_id")
   const selectedSector = sectors.find(s => s.id === selectedSectorId)
+  const locationLink = form.watch("location_link")
+  const lat = form.watch("latitude")
+  const lng = form.watch("longitude")
+  const [isResolvingLocation, setIsResolvingLocation] = React.useState(false)
+
+  // Resolve location link when it changes
+  React.useEffect(() => {
+    async function resolveLocation() {
+      if (!locationLink) {
+        form.setValue("latitude", null)
+        form.setValue("longitude", null)
+        return
+      }
+      
+      setIsResolvingLocation(true)
+      try {
+        const coords = await extractCoordinatesFromUrl(locationLink)
+        if (coords) {
+          form.setValue("latitude", coords.lat)
+          form.setValue("longitude", coords.lng)
+        } else {
+          // Could not resolve, maybe clear or leave as is
+          form.setValue("latitude", null)
+          form.setValue("longitude", null)
+        }
+      } catch (error) {
+        console.error("Failed to resolve location:", error)
+      } finally {
+        setIsResolvingLocation(false)
+      }
+    }
+
+    const timer = setTimeout(() => {
+      resolveLocation()
+    }, 1000) // Debounce
+
+    return () => clearTimeout(timer)
+  }, [locationLink, form])
 
   // Reset dependent fields when sector changes
   React.useEffect(() => {
@@ -190,7 +239,12 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
             station: values.station,
             address: values.address,
             work_order_number: values.work_order_number,
+            complaint_number: values.complaint_number,
             fault_details: values.fault_details,
+            fault_duration: values.fault_duration,
+            location_link: values.location_link,
+            latitude: values.latitude,
+            longitude: values.longitude,
             vehicles_used: values.vehicles_used,
             obstacles_problems: values.obstacles_problems,
             technical_staff: values.technical_staff,
@@ -198,6 +252,47 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
           .eq("id", formId)
 
         if (formError) throw formError
+
+        // Log the edit for admins
+        const { data: admins } = await supabase
+          .from("users")
+          .select("id")
+          .eq("role", "admin")
+
+        if (admins && admins.length > 0) {
+          const changedFields: string[] = []
+          const fieldLabels: Record<string, string> = {
+            feeder: "المغذي",
+            transformer_number: "رقم المحولة",
+            station: "المحطة",
+            address: "العنوان",
+            work_order_number: "رقم أمر العمل",
+            complaint_number: "رقم الشكوى",
+            fault_details: "تفاصيل العطل",
+            fault_duration: "مدة العطل",
+            obstacles_problems: "المعوقات والمشاكل",
+            technical_staff: "الكادر الفني",
+          }
+
+          Object.keys(fieldLabels).forEach((key) => {
+            if (values[key as keyof typeof values] !== initialData[key as keyof typeof initialData]) {
+              changedFields.push(fieldLabels[key])
+            }
+          })
+
+          const changesText = changedFields.length > 0 
+            ? ` (تعديل: ${changedFields.join("، ")})`
+            : ""
+
+          const notifications = admins.map((admin) => ({
+            user_id: admin.id,
+            title: "تعديل استمارة",
+            message: `قام المستخدم ${userData.user.email} بتعديل الاستمارة رقم ${initialData.form_number}${initialData.status === 'printed' ? ' (بعد الطباعة)' : ''}${changesText}`,
+            type: "edit_form",
+            form_id: formId,
+          }))
+          await supabase.from("notifications").insert(notifications)
+        }
 
         // Delete existing materials and logs
         await supabase.from("materials_used").delete().eq("form_id", formId)
@@ -218,7 +313,12 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
             station: values.station,
             address: values.address,
             work_order_number: values.work_order_number,
+            complaint_number: values.complaint_number,
             fault_details: values.fault_details,
+            fault_duration: values.fault_duration,
+            location_link: values.location_link,
+            latitude: values.latitude,
+            longitude: values.longitude,
             vehicles_used: values.vehicles_used,
             obstacles_problems: values.obstacles_problems,
             technical_staff: values.technical_staff,
@@ -329,13 +429,37 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
 
       router.push(`/dashboard/forms/${formId}`)
     } catch (error: any) {
-      console.error("Form submission error:", error)
+      console.error("Form submission error details:", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        error: error
+      })
+      
       let message = error?.message || "حدث خطأ أثناء حفظ البلاغ."
-      if (message.includes("schema cache") || message.includes("42P01")) {
-        message = "بعض الجداول المطلوبة غير موجودة في قاعدة البيانات. يرجى مراجعة الإعدادات العامة لإكمال الإعداد."
+      
+      // Check for missing columns or tables
+      if (
+        message.includes("schema cache") || 
+        message.includes("42P01") || 
+        message.includes("42703") || // undefined_column
+        (error?.code === "42703")
+      ) {
+        message = "هناك نقص في أعمدة أو جداول قاعدة البيانات (ربما حقول الموقع أو وقت الاستغراق). يرجى مراجعة الإعدادات العامة وتشغيل كود SQL المحدث."
+      } else if (error?.code === "23505") {
+        // Unique constraint violation
+        if (message.includes("work_order_number")) {
+          message = "رقم أمر العمل هذا موجود مسبقاً، يرجى استخدام رقم فريد."
+        } else if (message.includes("complaint_number")) {
+          message = "رقم الشكوى هذا موجود مسبقاً، يرجى استخدام رقم فريد."
+        } else {
+          message = "يوجد حقل مكرر يجب أن يكون فريداً (رقم العمل أو رقم الشكوى)."
+        }
       }
+      
       toast({
-        title: "خطأ",
+        title: "خطأ في الحفظ",
         description: message,
         variant: "destructive",
       })
@@ -542,6 +666,56 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="location_link"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>رابط الموقع (Google Maps)</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input placeholder="الصق رابط خرائط جوجل هنا..." {...field} disabled={isLoading} />
+                      {isResolvingLocation && (
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                  {locationLink && !isResolvingLocation && !lat && (
+                    <p className="text-xs text-amber-600 mt-1 font-medium">
+                      لم نتمكن من استخراج الإحداثيات من هذا الرابط. يرجى التأكد من أنه رابط صالح لخرائط جوجل.
+                    </p>
+                  )}
+                  {lat && lng && (
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          تم استخراج الإحداثيات بنجاح
+                        </p>
+                        <p className="text-[10px] text-muted-foreground" dir="ltr">
+                          {lat.toFixed(6)}, {lng.toFixed(6)}
+                        </p>
+                      </div>
+                      <div className="rounded-md overflow-hidden border">
+                        <iframe 
+                          width="100%" 
+                          height="250" 
+                          src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`} 
+                          frameBorder="0" 
+                          scrolling="no" 
+                          marginHeight={0} 
+                          marginWidth={0}
+                          title="موقع العطل"
+                        ></iframe>
+                      </div>
+                    </div>
+                  )}
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 
@@ -549,7 +723,7 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
           <CardHeader>
             <CardTitle>تفاصيل العطل</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-6">
+          <CardContent className="grid gap-6 md:grid-cols-2">
             <FormField
               control={form.control}
               name="work_order_number"
@@ -565,12 +739,38 @@ export default function FaultForm({ userSectorId, sectors, vehicles, materials, 
             />
             <FormField
               control={form.control}
-              name="fault_details"
+              name="complaint_number"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>رقم الشكوى</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isLoading} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fault_details"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
                   <FormLabel>تفاصيل العطل</FormLabel>
                   <FormControl>
                     <Textarea rows={4} {...field} disabled={isLoading} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fault_duration"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>وقت استغراق العطل</FormLabel>
+                  <FormControl>
+                    <Input placeholder="مثال: ساعتين و نصف، 45 دقيقة..." {...field} disabled={isLoading} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

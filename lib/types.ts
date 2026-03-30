@@ -31,7 +31,12 @@ export interface FaultForm {
   station: string
   address: string
   work_order_number: string
+  complaint_number: string
   fault_details: string
+  fault_duration?: string | null
+  location_link?: string | null
+  latitude?: number | null
+  longitude?: number | null
   vehicles_used?: string | null
   obstacles_problems?: string | null
   technical_staff: string

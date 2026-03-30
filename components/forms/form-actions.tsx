@@ -146,6 +146,29 @@ export default function FormActions({ form, isAdmin, materialsUsed, materialsRet
         .eq('id', form.id)
         
       if (error) throw error
+
+      // Notify admins about the closure
+      const { data: admins } = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'admin')
+
+      const { data: userData } = await supabase.auth.getUser()
+      const userEmail = userData.user?.email || 'مستخدم'
+
+      if (admins) {
+        for (const admin of admins) {
+          await supabase
+            .from('notifications')
+            .insert({
+              user_id: admin.id,
+              title: 'إغلاق بلاغ',
+              message: `قام ${userEmail.split('@')[0]} بإغلاق البلاغ رقم ${form.form_number}`,
+              type: 'edit_form',
+              form_id: form.id
+            })
+        }
+      }
       
       toast({
         title: "تم الإغلاق",
@@ -165,7 +188,7 @@ export default function FormActions({ form, isAdmin, materialsUsed, materialsRet
 
   return (
     <div className="flex items-center gap-2">
-      {canEdit && form.status === 'draft' && (
+      {canEdit && (form.status === 'draft' || form.status === 'printed') && (
         <Link href={`/dashboard/forms/${form.id}/edit`}>
           <Button variant="outline">
             <Edit className="mr-2 h-4 w-4 ml-2" />
@@ -174,10 +197,21 @@ export default function FormActions({ form, isAdmin, materialsUsed, materialsRet
         </Link>
       )}
 
-      <Button variant="outline" onClick={handlePrint} disabled={isPrinting}>
-        {isPrinting ? <Loader2 className="mr-2 h-4 w-4 ml-2 animate-spin" /> : <Printer className="mr-2 h-4 w-4 ml-2" />}
-        طباعة
-      </Button>
+      {form.signed_forms && form.signed_forms.length > 0 && (
+        <a href={form.signed_forms[form.signed_forms.length - 1].pdf_url} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline">
+            <CheckCircle className="mr-2 h-4 w-4 ml-2 text-green-500" />
+            عرض النموذج الموقع
+          </Button>
+        </a>
+      )}
+
+      {form.status !== 'closed' && (
+        <Button variant="outline" onClick={handlePrint} disabled={isPrinting}>
+          {isPrinting ? <Loader2 className="mr-2 h-4 w-4 ml-2 animate-spin" /> : <Printer className="mr-2 h-4 w-4 ml-2" />}
+          طباعة
+        </Button>
+      )}
 
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
         <DialogTrigger asChild>
@@ -216,7 +250,7 @@ export default function FormActions({ form, isAdmin, materialsUsed, materialsRet
         </DialogContent>
       </Dialog>
 
-      {isAdmin && form.status !== 'closed' && (
+      {canEdit && form.status !== 'closed' && (
         <Button variant="default" className="bg-green-600 hover:bg-green-700" onClick={handleClose} disabled={isClosing}>
           {isClosing ? <Loader2 className="mr-2 h-4 w-4 ml-2 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4 ml-2" />}
           إغلاق البلاغ

@@ -31,23 +31,27 @@ export async function printForm(form: FaultForm, materialsUsed: MaterialUsed[], 
   `
 
   const topCardsHtml = `
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
-      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">القطاع</div>
-        <div style="font-size: 22px; font-weight: bold;">${form.resolved_sector_name || (Array.isArray(form.sectors) ? form.sectors[0]?.name : form.sectors?.name) || "غير محدد"}</div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 30px;">
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">القطاع</div>
+        <div style="font-size: 18px; font-weight: bold;">${form.resolved_sector_name || (Array.isArray(form.sectors) ? form.sectors[0]?.name : form.sectors?.name) || "غير محدد"}</div>
       </div>
-      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">التاريخ والوقت</div>
-        <div style="font-size: 18px; font-weight: bold;">${form.date || ""} ${form.time || ""}</div>
-        <div style="font-size: 14px; color: #64748b;">${form.day || ""}</div>
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">التاريخ والوقت</div>
+        <div style="font-size: 16px; font-weight: bold;">${form.date || ""} ${form.time || ""}</div>
+        <div style="font-size: 12px; color: #64748b;">${form.day || ""}</div>
       </div>
-      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">رقم أمر العمل</div>
-        <div style="font-size: 22px; font-weight: bold;">${form.work_order_number || ""}</div>
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">رقم أمر العمل</div>
+        <div style="font-size: 18px; font-weight: bold;">${form.work_order_number || ""}</div>
       </div>
-      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">الحالة</div>
-        <div style="font-size: 22px; font-weight: bold; color: #3b82f6;">
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">رقم الشكوى</div>
+        <div style="font-size: 18px; font-weight: bold;">${form.complaint_number || ""}</div>
+      </div>
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">الحالة</div>
+        <div style="font-size: 18px; font-weight: bold; color: #3b82f6;">
           ${form.status === 'draft' ? 'مسودة' : 
             form.status === 'printed' ? 'مطبوع' : 
             form.status === 'signed' ? 'موقع' : 'مغلق'}
@@ -76,6 +80,14 @@ export async function printForm(form: FaultForm, materialsUsed: MaterialUsed[], 
           <span style="font-weight: 600; color: #64748b;">العنوان:</span>
           <span style="font-weight: bold;">${form.address || ""}</span>
         </div>
+        ${(form.latitude !== null && form.longitude !== null && form.latitude !== undefined && form.longitude !== undefined) ? `
+        <div style="margin-top: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+          <img src="https://static-maps.yandex.ru/1.x/?lang=ar_AE&ll=${form.longitude},${form.latitude}&z=15&l=map&size=400,200&pt=${form.longitude},${form.latitude},pm2rdm" width="100%" height="200" style="object-fit: cover; display: block;" crossorigin="anonymous" />
+        </div>
+        <div style="font-size: 12px; color: #64748b; margin-top: 5px; text-align: left;" dir="ltr">
+          ${form.latitude.toFixed(6)}, ${form.longitude.toFixed(6)}
+        </div>
+        ` : ''}
       </div>
       <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">تفاصيل العطل</h3>

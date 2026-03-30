@@ -92,7 +92,9 @@ CREATE TABLE signed_forms (
 CREATE TABLE notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT,
     message TEXT NOT NULL,
+    type TEXT,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     form_id UUID REFERENCES fault_forms(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -149,13 +151,13 @@ DECLARE
 BEGIN
     IF TG_OP = 'INSERT' AND TG_TABLE_NAME = 'fault_forms' THEN
         FOR admin_id IN SELECT id FROM users WHERE role = 'admin' LOOP
-            INSERT INTO notifications (user_id, message, form_id)
-            VALUES (admin_id, 'تم إنشاء نموذج عطل جديد: ' || NEW.form_number, NEW.id);
+            INSERT INTO notifications (user_id, title, message, type, form_id)
+            VALUES (admin_id, 'نموذج جديد', 'تم إنشاء نموذج عطل جديد: ' || NEW.form_number, 'new_form', NEW.id);
         END LOOP;
     ELSIF TG_OP = 'INSERT' AND TG_TABLE_NAME = 'signed_forms' THEN
         FOR admin_id IN SELECT id FROM users WHERE role = 'admin' LOOP
-            INSERT INTO notifications (user_id, message, form_id)
-            VALUES (admin_id, 'تم رفع نموذج موقع جديد', NEW.form_id);
+            INSERT INTO notifications (user_id, title, message, type, form_id)
+            VALUES (admin_id, 'نموذج موقع', 'تم رفع نموذج موقع جديد', 'signed_form', NEW.form_id);
         END LOOP;
     END IF;
     RETURN NEW;
@@ -214,12 +216,13 @@ CREATE POLICY "Everyone can read sectors" ON sectors FOR SELECT USING (TRUE);
 CREATE POLICY "Admins can do all on users" ON users FOR ALL USING (is_admin()) WITH CHECK (is_admin());
 CREATE POLICY "Users can read their own profile" ON users FOR SELECT USING (id = auth.uid());
 CREATE POLICY "Users can update their own profile" ON users FOR UPDATE USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+CREATE POLICY "Authenticated users can see admin IDs" ON users FOR SELECT USING (role = 'admin');
 
 -- Fault Forms Policies
 CREATE POLICY "Admins can do all on fault_forms" ON fault_forms FOR ALL USING (is_admin()) WITH CHECK (is_admin());
 CREATE POLICY "Sector users can read their sector forms" ON fault_forms FOR SELECT USING (sector_id = get_user_sector());
 CREATE POLICY "Sector users can insert their sector forms" ON fault_forms FOR INSERT WITH CHECK (sector_id = get_user_sector() AND created_by = auth.uid());
-CREATE POLICY "Sector users can update their sector forms" ON fault_forms FOR UPDATE USING (sector_id = get_user_sector() AND created_by = auth.uid()) WITH CHECK (sector_id = get_user_sector() AND created_by = auth.uid());
+CREATE POLICY "Sector users can update their sector forms" ON fault_forms FOR UPDATE USING (sector_id = get_user_sector()) WITH CHECK (sector_id = get_user_sector());
 
 -- Materials Used Policies
 CREATE POLICY "Admins can do all on materials_used" ON materials_used FOR ALL USING (is_admin()) WITH CHECK (is_admin());
@@ -279,6 +282,7 @@ CREATE POLICY "Sector users can insert their sector signed forms" ON signed_form
 -- Notifications Policies
 CREATE POLICY "Users can read their own notifications" ON notifications FOR SELECT USING (user_id = auth.uid());
 CREATE POLICY "Users can update their own notifications" ON notifications FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE POLICY "Authenticated users can insert notifications" ON notifications FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Create Storage Buckets
 INSERT INTO storage.buckets (id, name, public) VALUES ('fault-images', 'fault-images', true) ON CONFLICT DO NOTHING;

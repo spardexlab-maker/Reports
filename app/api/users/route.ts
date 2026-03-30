@@ -59,3 +59,75 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabaseAdmin = createAdminClient()
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 })
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { id, username, password, full_name, role, sector_id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
+    const updateData: any = {}
+    const dbUpdateData: any = {
+      full_name,
+      role,
+      sector_id: role === 'admin' ? null : sector_id,
+    }
+
+    if (username) {
+      const email = `${username}@system.local`
+      updateData.email = email
+    }
+    if (password) {
+      updateData.password = password
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+        id,
+        updateData
+      )
+
+      if (authError) {
+        return NextResponse.json({ error: authError.message }, { status: 400 })
+      }
+    }
+
+    const { error: dbError } = await supabaseAdmin
+      .from('users')
+      .update(dbUpdateData)
+      .eq('id', id)
+
+    if (dbError) {
+      return NextResponse.json({ error: dbError.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}

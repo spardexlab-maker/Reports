@@ -9,8 +9,8 @@ interface ReportData {
     totalMaterials: number
     statusCounts: Record<string, number>
     materialUsage: { name: string; value: number }[]
-    vehicleUsage: { name: string; value: number }[]
-    crewUsage: { name: string; value: number }[]
+    vehicleUsage: { name: string; count: number; hours: number }[]
+    crewUsage: { name: string; count: number; hours: number }[]
   }
   filteredForms: FaultForm[]
 }
@@ -112,14 +112,16 @@ export async function printReport(data: ReportData, title: string) {
           <thead>
             <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
               <th style="padding: 10px; text-align: right;">الآلية</th>
-              <th style="padding: 10px; text-align: right;">الساعات</th>
+              <th style="padding: 10px; text-align: right;">العدد</th>
+              <th style="padding: 10px; text-align: right;">الوقت</th>
             </tr>
           </thead>
           <tbody>
             ${data.stats.vehicleUsage.map((v: any) => `
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 10px;">${v.name}</td>
-                <td style="padding: 10px; font-weight: bold; color: #ea580c;">${v.value}</td>
+                <td style="padding: 10px; font-weight: bold; color: #475569;">${v.count}</td>
+                <td style="padding: 10px; font-weight: bold; color: #ea580c;">${v.hours}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -131,14 +133,16 @@ export async function printReport(data: ReportData, title: string) {
           <thead>
             <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
               <th style="padding: 10px; text-align: right;">العضو</th>
-              <th style="padding: 10px; text-align: right;">الساعات</th>
+              <th style="padding: 10px; text-align: right;">العدد</th>
+              <th style="padding: 10px; text-align: right;">الوقت</th>
             </tr>
           </thead>
           <tbody>
             ${data.stats.crewUsage.map((c: any) => `
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 10px;">${c.name}</td>
-                <td style="padding: 10px; font-weight: bold; color: #16a34a;">${c.value}</td>
+                <td style="padding: 10px; font-weight: bold; color: #475569;">${c.count}</td>
+                <td style="padding: 10px; font-weight: bold; color: #16a34a;">${c.hours}</td>
               </tr>
             `).join('')}
           </tbody>

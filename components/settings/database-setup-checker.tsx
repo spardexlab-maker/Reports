@@ -19,6 +19,7 @@ export default function DatabaseSetupChecker() {
     const missing: string[] = []
     const errors: string[] = []
 
+    // Check tables
     for (const table of tablesToCheck) {
       try {
         const { error } = await supabase.from(table).select("count", { count: "exact", head: true }).limit(1)
@@ -34,6 +35,20 @@ export default function DatabaseSetupChecker() {
       }
     }
 
+    // Check specific columns in fault_forms
+    try {
+      const { error: colError } = await supabase
+        .from("fault_forms")
+        .select("fault_duration, location_link, latitude, longitude")
+        .limit(1)
+      
+      if (colError && (colError.code === "42703" || colError.message.includes("column"))) {
+        missing.push("أعمدة الموقع في fault_forms")
+      }
+    } catch (e: any) {
+      // Ignore if table doesn't exist (already handled by other checks if needed)
+    }
+
     if (missing.length > 0) {
       setMissingTables(missing)
       setStatus("missing")
@@ -46,6 +61,7 @@ export default function DatabaseSetupChecker() {
   }, [supabase])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkTables()
   }, [checkTables])
 
@@ -55,6 +71,12 @@ export default function DatabaseSetupChecker() {
 
   const sqlCode = `-- 1. تفعيل الإضافات اللازمة
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 1.5 إضافة أعمدة جديدة (وقت الاستغراق، والموقع)
+ALTER TABLE public.fault_forms ADD COLUMN IF NOT EXISTS fault_duration VARCHAR(255);
+ALTER TABLE public.fault_forms ADD COLUMN IF NOT EXISTS location_link TEXT;
+ALTER TABLE public.fault_forms ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8);
+ALTER TABLE public.fault_forms ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8);
 
 -- 2. جدول أعضاء الطاقم الفني
 CREATE TABLE IF NOT EXISTS public.crew_members (

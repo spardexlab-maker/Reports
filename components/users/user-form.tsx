@@ -35,9 +35,10 @@ import {
 } from "@/components/ui/select"
 
 const formSchema = z.object({
+  id: z.string().optional(),
   full_name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل."),
   username: z.string().min(3, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل."),
-  password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل."),
+  password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل.").optional().or(z.literal("")),
   role: z.enum(["admin", "sector_user"]),
   sector_id: z.string().optional(),
 }).refine(data => {
@@ -48,13 +49,23 @@ const formSchema = z.object({
 }, {
   message: "القطاع مطلوب لمستخدمي القطاعات",
   path: ["sector_id"],
+}).refine(data => {
+  if (!data.id && !data.password) {
+    return false
+  }
+  return true
+}, {
+  message: "كلمة المرور مطلوبة للمستخدم الجديد",
+  path: ["password"],
 })
 
 interface UserFormProps {
   sectors: any[]
+  initialData?: any
+  trigger?: React.ReactNode
 }
 
-export default function UserForm({ sectors }: UserFormProps) {
+export default function UserForm({ sectors, initialData, trigger }: UserFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
@@ -63,11 +74,12 @@ export default function UserForm({ sectors }: UserFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      full_name: "",
-      username: "",
+      id: initialData?.id || "",
+      full_name: initialData?.full_name || "",
+      username: initialData?.email?.split("@")[0] || "",
       password: "",
-      role: "sector_user",
-      sector_id: "",
+      role: initialData?.role || "sector_user",
+      sector_id: initialData?.sector_id || "",
     },
   })
 
@@ -77,8 +89,9 @@ export default function UserForm({ sectors }: UserFormProps) {
     setIsLoading(true)
 
     try {
+      const isEditing = !!initialData
       const response = await fetch("/api/users", {
-        method: "POST",
+        method: isEditing ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -91,7 +104,7 @@ export default function UserForm({ sectors }: UserFormProps) {
         result = await response.json()
       } else {
         const text = await response.text()
-        console.error("Non-JSON response from /api/users:", {
+        console.error(`Non-JSON response from /api/users (${isEditing ? 'PATCH' : 'POST'}):`, {
           status: response.status,
           statusText: response.statusText,
           contentType,
@@ -101,21 +114,23 @@ export default function UserForm({ sectors }: UserFormProps) {
       }
 
       if (!response.ok) {
-        throw new Error(result.error || "حدث خطأ أثناء إضافة المستخدم.")
+        throw new Error(result.error || `حدث خطأ أثناء ${isEditing ? 'تعديل' : 'إضافة'} المستخدم.`)
       }
 
       toast({
-        title: "تمت الإضافة بنجاح",
-        description: "تم إضافة المستخدم الجديد بنجاح.",
+        title: isEditing ? "تم التعديل بنجاح" : "تمت الإضافة بنجاح",
+        description: isEditing ? "تم تعديل بيانات المستخدم بنجاح." : "تم إضافة المستخدم الجديد بنجاح.",
       })
 
       setIsOpen(false)
-      form.reset()
+      if (!isEditing) {
+        form.reset()
+      }
       router.refresh()
     } catch (error: any) {
       toast({
         title: "خطأ",
-        description: error.message || "حدث خطأ أثناء إضافة المستخدم.",
+        description: error.message || `حدث خطأ أثناء ${initialData ? 'تعديل' : 'إضافة'} المستخدم.`,
         variant: "destructive",
       })
     } finally {
@@ -126,16 +141,18 @@ export default function UserForm({ sectors }: UserFormProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4 ml-2" />
-          إضافة مستخدم جديد
-        </Button>
+        {trigger || (
+          <Button>
+            <Plus className="mr-2 h-4 w-4 ml-2" />
+            إضافة مستخدم جديد
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>إضافة مستخدم جديد</DialogTitle>
+          <DialogTitle>{initialData ? "تعديل مستخدم" : "إضافة مستخدم جديد"}</DialogTitle>
           <DialogDescription>
-            أدخل بيانات المستخدم الجديد.
+            {initialData ? "قم بتعديل بيانات المستخدم." : "أدخل بيانات المستخدم الجديد."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -171,7 +188,7 @@ export default function UserForm({ sectors }: UserFormProps) {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>كلمة المرور</FormLabel>
+                  <FormLabel>كلمة المرور {initialData && "(اتركها فارغة لعدم التغيير)"}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} disabled={isLoading} />
                   </FormControl>

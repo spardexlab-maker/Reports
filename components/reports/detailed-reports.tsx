@@ -159,16 +159,24 @@ export default function DetailedReports({
       return acc
     }, {} as Record<string, number>)
 
-    // Vehicle statistics (hours)
-    const vehicleUsage: Record<string, number> = {}
+    // Vehicle statistics
+    const vehicleUsage: Record<string, { count: number, hours: number }> = {}
     filteredVehiclesLog.forEach(v => {
-      vehicleUsage[v.vehicle_name] = (vehicleUsage[v.vehicle_name] || 0) + (Number(v.hours) || 0)
+      if (!vehicleUsage[v.vehicle_name]) {
+        vehicleUsage[v.vehicle_name] = { count: 0, hours: 0 }
+      }
+      vehicleUsage[v.vehicle_name].count += 1
+      vehicleUsage[v.vehicle_name].hours += (Number(v.hours) || 0)
     })
 
-    // Crew statistics (hours)
-    const crewUsage: Record<string, number> = {}
+    // Crew statistics
+    const crewUsage: Record<string, { count: number, hours: number }> = {}
     filteredCrewLog.forEach(c => {
-      crewUsage[c.crew_name] = (crewUsage[c.crew_name] || 0) + (Number(c.hours) || 0)
+      if (!crewUsage[c.crew_name]) {
+        crewUsage[c.crew_name] = { count: 0, hours: 0 }
+      }
+      crewUsage[c.crew_name].count += 1
+      crewUsage[c.crew_name].hours += (Number(c.hours) || 0)
     })
 
     return {
@@ -180,11 +188,11 @@ export default function DetailedReports({
         .sort((a, b) => b.value - a.value)
         .slice(0, 10), // Top 10 materials
       vehicleUsage: Object.entries(vehicleUsage)
-        .map(([name, value]) => ({ name, value: value as number }))
-        .sort((a, b) => b.value - a.value),
+        .map(([name, data]) => ({ name, count: data.count, hours: data.hours }))
+        .sort((a, b) => b.hours - a.hours),
       crewUsage: Object.entries(crewUsage)
-        .map(([name, value]) => ({ name, value: value as number }))
-        .sort((a, b) => b.value - a.value)
+        .map(([name, data]) => ({ name, count: data.count, hours: data.hours }))
+        .sort((a, b) => b.hours - a.hours)
     }
   }, [filteredForms, filteredMaterialsUsed, filteredVehiclesLog, filteredCrewLog])
 
@@ -236,15 +244,18 @@ export default function DetailedReports({
         "رقم المحول": form.transformer_number,
         "العنوان": form.address,
         "تفاصيل العطل": form.fault_details,
+        "وقت الاستغراق": form.fault_duration || "",
         "الحالة": form.status === 'draft' ? 'مسودة' : 
                  form.status === 'printed' ? 'مطبوع' : 
                  form.status === 'signed' ? 'موقع' : 'مغلق',
         "المواد المستخدمة": formMaterials,
+        "عدد الآليات": vehicles.length,
         "السيارات المستخدمة": formVehiclesNames,
         "ساعات عمل الآليات": formVehiclesHours,
-        "المعوقات": form.obstacles_problems,
+        "عدد الفنيين": crew.length,
         "الطاقم الفني": formCrewNames,
-        "ساعات عمل الطاقم": formCrewHours
+        "ساعات عمل الطاقم": formCrewHours,
+        "المعوقات": form.obstacles_problems
       }
     })
 
@@ -256,7 +267,7 @@ export default function DetailedReports({
     const wscols = [
       { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
-      { wch: 30 }, { wch: 10 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 15 }
+      { wch: 30 }, { wch: 10 }, { wch: 15 }, { wch: 40 }, { wch: 10 }, { wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 20 }, { wch: 15 }, { wch: 30 }
     ]
     worksheet["!cols"] = wscols
 
@@ -521,7 +532,7 @@ export default function DetailedReports({
         {/* Vehicles Summary Table */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-base">ملخص استخدام الآليات (ساعات)</CardTitle>
+            <CardTitle className="text-base">ملخص استخدام الآليات</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border overflow-hidden">
@@ -529,13 +540,14 @@ export default function DetailedReports({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-right text-xs">الآلية</TableHead>
-                    <TableHead className="text-right text-xs">الساعات</TableHead>
+                    <TableHead className="text-right text-xs">العدد</TableHead>
+                    <TableHead className="text-right text-xs">الوقت</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {stats.vehicleUsage.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center py-4 text-muted-foreground text-xs">
+                      <TableCell colSpan={3} className="text-center py-4 text-muted-foreground text-xs">
                         لا توجد بيانات
                       </TableCell>
                     </TableRow>
@@ -543,7 +555,8 @@ export default function DetailedReports({
                     stats.vehicleUsage.map((v, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="font-medium text-xs">{v.name}</TableCell>
-                        <TableCell className="text-xs font-bold text-orange-600">{v.value}</TableCell>
+                        <TableCell className="text-xs font-bold text-slate-600">{v.count}</TableCell>
+                        <TableCell className="text-xs font-bold text-orange-600">{v.hours}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -556,7 +569,7 @@ export default function DetailedReports({
         {/* Crew Summary Table */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-base">ملخص الطاقم الفني (ساعات)</CardTitle>
+            <CardTitle className="text-base">ملخص الطاقم الفني</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border overflow-hidden">
@@ -564,13 +577,14 @@ export default function DetailedReports({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-right text-xs">العضو</TableHead>
-                    <TableHead className="text-right text-xs">الساعات</TableHead>
+                    <TableHead className="text-right text-xs">العدد</TableHead>
+                    <TableHead className="text-right text-xs">الوقت</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {stats.crewUsage.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center py-4 text-muted-foreground text-xs">
+                      <TableCell colSpan={3} className="text-center py-4 text-muted-foreground text-xs">
                         لا توجد بيانات
                       </TableCell>
                     </TableRow>
@@ -578,7 +592,8 @@ export default function DetailedReports({
                     stats.crewUsage.map((c, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         <TableCell className="font-medium text-xs">{c.name}</TableCell>
-                        <TableCell className="text-xs font-bold text-green-600">{c.value}</TableCell>
+                        <TableCell className="text-xs font-bold text-slate-600">{c.count}</TableCell>
+                        <TableCell className="text-xs font-bold text-green-600">{c.hours}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -611,6 +626,9 @@ export default function DetailedReports({
                     <TableHead className="text-right">رقم البلاغ</TableHead>
                     <TableHead className="text-right">القطاع</TableHead>
                     <TableHead className="text-right">التاريخ</TableHead>
+                    <TableHead className="text-right">وقت الاستغراق</TableHead>
+                    <TableHead className="text-right">عدد الآليات</TableHead>
+                    <TableHead className="text-right">عدد الفنيين</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
                     <TableHead className="text-right">المواد</TableHead>
                   </TableRow>
@@ -618,13 +636,15 @@ export default function DetailedReports({
                 <TableBody>
                   {filteredForms.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         لا توجد بيانات تطابق الفلاتر المختارة
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredForms.map((form) => {
                       const formMaterials = materialsUsed.filter(m => m.form_id === form.id)
+                      const formVehiclesCount = vehiclesUsedLog.filter(v => v.form_id === form.id).length
+                      const formCrewCount = crewUsedLog.filter(c => c.form_id === form.id).length
                       const sectorName = Array.isArray(form.sectors)
                         ? form.sectors[0]?.name
                         : form.sectors?.name || 
@@ -635,6 +655,9 @@ export default function DetailedReports({
                           <TableCell className="font-medium">{form.form_number}</TableCell>
                           <TableCell>{sectorName}</TableCell>
                           <TableCell>{form.date}</TableCell>
+                          <TableCell>{form.fault_duration || "-"}</TableCell>
+                          <TableCell>{formVehiclesCount}</TableCell>
+                          <TableCell>{formCrewCount}</TableCell>
                           <TableCell>
                             <Badge variant={
                               form.status === 'closed' ? 'default' : 

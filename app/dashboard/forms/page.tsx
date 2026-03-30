@@ -64,7 +64,7 @@ export default async function FormsPage({
   }
 
   if (q) {
-    query = query.or(`form_number.ilike.%${q}%,station.ilike.%${q}%,feeder.ilike.%${q}%`)
+    query = query.or(`form_number.ilike.%${q}%,station.ilike.%${q}%,feeder.ilike.%${q}%,work_order_number.ilike.%${q}%,complaint_number.ilike.%${q}%`)
   }
 
   const [formsResult, sectorsResult] = await Promise.all([
@@ -92,7 +92,7 @@ export default async function FormsPage({
           <Input
             name="q"
             type="search"
-            placeholder="بحث برقم البلاغ، المحطة، المغذي..."
+            placeholder="بحث برقم البلاغ، العمل، الشكوى، المحطة..."
             defaultValue={q}
           />
           <Button type="submit" variant="secondary">
@@ -106,8 +106,11 @@ export default async function FormsPage({
           <TableHeader>
             <TableRow>
               <TableHead>رقم البلاغ</TableHead>
+              <TableHead>رقم العمل</TableHead>
+              <TableHead>رقم الشكوى</TableHead>
               <TableHead>القطاع</TableHead>
               <TableHead>التاريخ</TableHead>
+              <TableHead>وقت الاستغراق</TableHead>
               <TableHead>المحطة</TableHead>
               <TableHead>المغذي</TableHead>
               <TableHead>الحالة</TableHead>
@@ -117,7 +120,7 @@ export default async function FormsPage({
           <TableBody>
             {forms?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   لا توجد بلاغات
                 </TableCell>
               </TableRow>
@@ -125,6 +128,8 @@ export default async function FormsPage({
               forms?.map((form: FaultForm) => (
                 <TableRow key={form.id}>
                   <TableCell className="font-medium">{form.form_number}</TableCell>
+                  <TableCell>{form.work_order_number}</TableCell>
+                  <TableCell>{form.complaint_number}</TableCell>
                   <TableCell>
                     {Array.isArray(form.sectors)
                       ? form.sectors[0]?.name
@@ -133,6 +138,7 @@ export default async function FormsPage({
                         ""}
                   </TableCell>
                   <TableCell>{form.date}</TableCell>
+                  <TableCell>{form.fault_duration || "-"}</TableCell>
                   <TableCell>{form.station}</TableCell>
                   <TableCell>{form.feeder}</TableCell>
                   <TableCell>
@@ -142,11 +148,20 @@ export default async function FormsPage({
                     {form.status === 'closed' && <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-100 text-green-800">مغلق</span>}
                   </TableCell>
                   <TableCell className="text-left">
-                    <Link href={`/dashboard/forms/${form.id}`}>
-                      <Button variant="outline" size="sm">
-                        عرض التفاصيل
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/dashboard/forms/${form.id}`}>
+                        <Button variant="outline" size="sm">
+                          عرض التفاصيل
+                        </Button>
+                      </Link>
+                      {(form.status === 'draft' || form.status === 'printed') && (
+                        <Link href={`/dashboard/forms/${form.id}/edit`}>
+                          <Button variant="secondary" size="sm">
+                            تعديل
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

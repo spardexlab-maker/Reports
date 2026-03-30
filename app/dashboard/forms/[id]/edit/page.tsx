@@ -62,12 +62,17 @@ export default async function EditFormPage({
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
 
-  // Check permissions: Only sector users can edit their own forms, and only if it's a draft
-  // Admins can edit anything
-  const isOwner = profile?.sector_id === form.sector_id;
-  const isDraft = form.status === "draft";
+  // Check permissions:
+  // 1. If form is closed, nobody can edit it
+  if (form.status === "closed") {
+    redirect(`/dashboard/forms/${id}`)
+  }
 
-  if (!isAdmin && (!isOwner || !isDraft)) {
+  // 2. Non-admins can only edit their own forms and only if it's a draft or printed
+  const isOwner = profile?.sector_id === form.sector_id;
+  const isEditable = form.status === "draft" || form.status === "printed";
+
+  if (!isAdmin && (!isOwner || !isEditable)) {
     redirect(`/dashboard/forms/${id}`)
   }
 

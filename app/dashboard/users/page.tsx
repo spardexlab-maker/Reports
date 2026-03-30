@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Edit } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import UserForm from "@/components/users/user-form"
+import { Button } from "@/components/ui/button"
 
 export const metadata: Metadata = {
   title: "إدارة المستخدمين | نظام إدارة بلاغات الأعطال",
@@ -42,7 +43,7 @@ export default async function UsersPage() {
     redirect("/login")
   }
 
-  const [{ data: profile }, { data: users }, { data: sectors }] = await Promise.all([
+  const [{ data: profile }, { data: usersData }, { data: sectors }] = await Promise.all([
     supabaseAdmin
       .from("users")
       .select("role")
@@ -50,10 +51,21 @@ export default async function UsersPage() {
       .maybeSingle(),
     supabaseAdmin
       .from("users")
-      .select("*, sectors(name)")
+      .select("id, role, sector_id, full_name, created_at, sectors(name)")
       .order("created_at", { ascending: false }),
     supabaseAdmin.from("sectors").select("*")
   ])
+
+  // Fetch emails from auth.admin.listUsers() since they are not in the public.users table
+  const { data: { users: authUsers } } = await supabaseAdmin.auth.admin.listUsers()
+  
+  const users = usersData?.map((u: any) => {
+    const authUser = authUsers.find((au: any) => au.id === u.id)
+    return {
+      ...u,
+      email: authUser?.email || "-"
+    }
+  })
 
   const isAdmin = profile?.role === "admin" || user.email === "admin@system.local"
   
@@ -90,15 +102,17 @@ export default async function UsersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>الاسم</TableHead>
+                <TableHead>اسم المستخدم</TableHead>
                 <TableHead>الدور</TableHead>
                 <TableHead>القطاع</TableHead>
                 <TableHead>تاريخ الإضافة</TableHead>
+                <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center">
+                  <TableCell colSpan={6} className="text-center">
                     لا يوجد مستخدمين
                   </TableCell>
                 </TableRow>
@@ -106,9 +120,21 @@ export default async function UsersPage() {
                 users?.map((u: any) => (
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell>{u.email?.split("@")[0] || "-"}</TableCell>
                     <TableCell>{u.role === 'admin' ? 'مدير' : 'مستخدم قطاع'}</TableCell>
                     <TableCell>{(Array.isArray(u.sectors) ? u.sectors[0]?.name : u.sectors?.name) || '-'}</TableCell>
                     <TableCell>{new Date(u.created_at).toLocaleDateString('ar-EG')}</TableCell>
+                    <TableCell className="text-left">
+                      <UserForm 
+                        sectors={sectors || []} 
+                        initialData={u} 
+                        trigger={
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                    </TableCell>
                   </TableRow>
                 ))
               )}

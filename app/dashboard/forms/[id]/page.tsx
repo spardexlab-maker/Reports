@@ -116,11 +116,11 @@ export default async function FormDetailsPage({
           isAdmin={isAdmin} 
           materialsUsed={form.materials_used || []} 
           materialsReturned={form.materials_returned || []}
-          canEdit={!isAdmin && profile?.sector_id === form.sector_id}
+          canEdit={isAdmin || profile?.sector_id === form.sector_id}
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">القطاع</CardTitle>
@@ -144,6 +144,14 @@ export default async function FormDetailsPage({
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">{form.work_order_number}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">رقم الشكوى</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{form.complaint_number}</div>
           </CardContent>
         </Card>
         <Card>
@@ -179,10 +187,37 @@ export default async function FormDetailsPage({
               <div className="font-semibold">المحطة:</div>
               <div className="col-span-2">{form.station}</div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4 border-b pb-2">
               <div className="font-semibold">العنوان:</div>
               <div className="col-span-2">{form.address}</div>
             </div>
+            {form.latitude !== null && form.longitude !== null && form.latitude !== undefined && form.longitude !== undefined && (
+              <div className="mt-4 space-y-2">
+                <div className="rounded-md overflow-hidden border h-80 shadow-sm relative group">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://maps.google.com/maps?q=${form.latitude},${form.longitude}&z=15&output=embed`}
+                    allowFullScreen
+                  />
+                  <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${form.latitude},${form.longitude}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="bg-white/90 backdrop-blur-sm text-blue-600 px-3 py-1.5 rounded-md text-xs font-bold shadow-sm border flex items-center gap-2"
+                    >
+                      الفتح في خرائط Google
+                    </a>
+                  </div>
+                </div>
+                <div className="text-[10px] text-muted-foreground text-left opacity-50" dir="ltr">
+                  {form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -190,8 +225,16 @@ export default async function FormDetailsPage({
           <CardHeader>
             <CardTitle>تفاصيل العطل</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap">{form.fault_details}</p>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="whitespace-pre-wrap">{form.fault_details}</p>
+            </div>
+            {form.fault_duration && (
+              <div className="grid grid-cols-3 gap-4 border-t pt-4">
+                <div className="font-semibold">وقت الاستغراق:</div>
+                <div className="col-span-2">{form.fault_duration}</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
