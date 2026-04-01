@@ -151,7 +151,7 @@ export default async function FormDetailsPage({
             <CardTitle className="text-sm font-medium text-muted-foreground">رقم الشكوى</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{form.complaint_number}</div>
+            <div className="text-xl font-bold">{form.complaint_number || "-"}</div>
           </CardContent>
         </Card>
         <Card>

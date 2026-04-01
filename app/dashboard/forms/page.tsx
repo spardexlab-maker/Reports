@@ -129,7 +129,7 @@ export default async function FormsPage({
                 <TableRow key={form.id}>
                   <TableCell className="font-medium">{form.form_number}</TableCell>
                   <TableCell>{form.work_order_number}</TableCell>
-                  <TableCell>{form.complaint_number}</TableCell>
+                  <TableCell>{form.complaint_number || "-"}</TableCell>
                   <TableCell>
                     {Array.isArray(form.sectors)
                       ? form.sectors[0]?.name
